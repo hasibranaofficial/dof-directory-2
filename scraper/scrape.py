@@ -8,7 +8,8 @@ URL = os.environ["SUPABASE_URL"].rstrip("/")
 KEY = os.environ["SUPABASE_SERVICE_KEY"]
 PATH = os.environ.get("OFFICERS_PATH", "/pages/officers?page=1&page_size=250")
 FULL_PHOTOS = os.environ.get("FULL_PHOTOS") == "1"
-H = {"apikey": KEY, "Authorization": f"Bearer {KEY}"}
+H = {"apikey": KEY}
+if KEY.startswith("eyJ"): H["Authorization"] = f"Bearer {KEY}"
 UA = {"User-Agent": "DoF-Directory-Bot/1.0 (official staff directory)"}
 PHONE = re.compile(r"(?:\+?880|\+৮৮০|0|০)[\d০-৯\-\s]{8,}")
 EMAIL = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")
