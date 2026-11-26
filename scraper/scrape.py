@@ -91,6 +91,7 @@ def run_office(o):
             if changed:
                 log.append({"office_id": o["id"], "officer_key": k, "action": "update" if ex else "add",
                             "detail": {f: row[f] for f in FIELDS}})
+        upserts = list({u["key"]: u for u in upserts}.values())
         if upserts:
             api("POST", "officers?on_conflict=office_id,key", json=upserts,
                 headers={"Prefer": "resolution=merge-duplicates"})
