@@ -1,0 +1,20 @@
+name: দৈনিক আপডেট
+on:
+  schedule:
+    - cron: "30 20 * * *"
+    - cron: "0 21 * * 5"
+  workflow_dispatch:
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -r scraper/requirements.txt
+      - run: python scraper/scrape.py
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          FULL_PHOTOS: ${{ github.event.schedule == '0 21 * * 5' && '1' || '0' }}
