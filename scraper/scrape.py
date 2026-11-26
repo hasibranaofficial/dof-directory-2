@@ -14,11 +14,9 @@ if KEY.startswith("eyJ"): H["Authorization"] = f"Bearer {KEY}"
 UA = {"User-Agent": "DoF-Directory-Bot/1.0 (official staff directory)"}
 PHONE = re.compile(r"(?:\+?880|\+৮৮০|0|০)[\d০-৯\-\s]{8,}")
 EMAIL = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")
-FIELDS = ("name", "designation", "phone", "email", "photo_url", "extra")
+FIELDS = ("name", "name_en", "designation", "phone", "email", "photo_url",
+          "join_date", "cadre_id", "bcs_batch", "extra")
 CARD = re.compile(r"officer|member|staff|profile|card", re.I)
-LABELS = {"নাম": "name", "পদবি": "designation", "ইমেইল": "email", "ই-মেইল": "email",
-          "মোবাইল": "phone", "অফিস": "office", "ফোন (অফিস)": "office_phone",
-          "ইন্টারকম": "intercom", "কক্ষ নম্বর": "room", "ফ্যাক্স": "fax", "ওয়েব পোর্টাল": "web"}
 
 def get(url, **kw):
     """সরকারি সাইটের অসম্পূর্ণ SSL সনদ থাকলে যাচাই ছাড়া আবার চেষ্টা করে।"""
@@ -40,6 +38,29 @@ def label_of(tr):
     c = tr.find(["th", "td"])
     return clean(c.get_text(" ")).rstrip(":：").strip() if c else ""
 
+def field_of(l):
+    """পেজের লেবেল থেকে ডেটাবেসের ঘর ঠিক করে; অচেনা লেবেল 'x:' দিয়ে শুরু হয়ে extra-তে যায়।"""
+    low = l.lower()
+    if "ইংরেজি" in l or low.startswith("name"): return "name_en"
+    if l == "নাম" or l.startswith("নাম (বাংলা") or l.startswith("নাম(বাংলা"): return "name"
+    if "পদবি" in l or "পদবী" in l: return "designation"
+    if "ইমেইল" in l or "ই-মেইল" in l or "ই মেইল" in l or "email" in low: return "email"
+    if "মোবাইল" in l: return "phone"
+    if "যোগদান" in l: return "join_date"
+    if "ক্যাডার" in l: return "cadre_id"
+    if "বিসিএস" in l or "bcs" in low: return "bcs_batch"
+    if "কক্ষ" in l: return "room"
+    if "ওয়েব" in l: return "web"
+    if "ইন্টারকম" in l: return "intercom"
+    if "ফ্যাক্স" in l: return "fax"
+    if "ফোন" in l: return "office_phone"
+    if l == "অফিস": return "office"
+    return "x:" + l
+
+def blank(name, photo):
+    return {"name": name, "name_en": None, "designation": None, "phone": None, "email": None,
+            "photo_url": photo, "join_date": None, "cadre_id": None, "bcs_batch": None, "extra": {}}
+
 def parse_labeled(s, base):
     """"লেবেল | মান" সারির কাঠামো: 'নাম' সারি এলে নতুন কর্মকর্তা শুরু হয়।"""
     out, cur, last_img = [], None, None
@@ -50,8 +71,9 @@ def parse_labeled(s, base):
             last_img = el; continue
         cells = el.find_all(["th", "td"], recursive=False)
         if len(cells) < 2: continue
-        f = LABELS.get(label_of(el))
-        if not f: continue
+        label = label_of(el)
+        if not label: continue
+        f = field_of(label)
         val = clean(cells[1].get_text(" "))
         if f == "name":
             own = el.find("img")
@@ -61,12 +83,14 @@ def parse_labeled(s, base):
                     own = tbl.find("img")
                 if own is None and tbl.parent is not None and len(tbl.parent.find_all("table")) == 1:
                     own = tbl.parent.find("img")
-            cur = {"name": val, "designation": None, "phone": None, "email": None,
-                   "photo_url": src(own if own is not None else last_img), "extra": {}}
+            cur = blank(val, src(own if own is not None else last_img))
             out.append(cur); last_img = None
         elif cur is not None and val:
             if f == "email": cur["email"] = val.replace(" ", "")
-            elif f in ("designation", "phone"): cur[f] = val
+            elif f in ("designation", "phone", "name_en", "join_date", "cadre_id", "bcs_batch"): cur[f] = val
+            elif f == "office": pass
+            elif f.startswith("x:"):
+                if len(label) <= 40: cur["extra"][f[2:]] = val
             else: cur["extra"][f] = val
     for o in out:
         o["extra"] = o["extra"] or None
@@ -88,14 +112,16 @@ def parse(html, base):
         cells = [c for c in cells if c]
         text = " ".join(cells)
         pm, em = PHONE.search(text), EMAIL.search(text)
-        phone, email = (clean(pm.group()) if pm else None), (em.group() if em else None)
         rest = [c for c in cells if not EMAIL.search(c) and not PHONE.fullmatch(c)
                 and not re.fullmatch(r"[\d০-৯\.]+", c)]
         if not rest: continue
         img = el.find("img")
-        out.append({"name": rest[0], "designation": rest[1] if len(rest) > 1 else None,
-                    "phone": phone, "email": email, "extra": None,
-                    "photo_url": urljoin(base + "/", img["src"]) if img and img.get("src") else None})
+        o = blank(rest[0], urljoin(base + "/", img["src"]) if img and img.get("src") else None)
+        o["designation"] = rest[1] if len(rest) > 1 else None
+        o["phone"] = clean(pm.group()) if pm else None
+        o["email"] = em.group() if em else None
+        o["extra"] = None
+        out.append(o)
     return out
 
 def key_of(name, desig): return hashlib.sha1(clean(f"{name}|{desig or ''}").encode()).hexdigest()[:16]
