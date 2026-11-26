@@ -14,8 +14,11 @@ if KEY.startswith("eyJ"): H["Authorization"] = f"Bearer {KEY}"
 UA = {"User-Agent": "DoF-Directory-Bot/1.0 (official staff directory)"}
 PHONE = re.compile(r"(?:\+?880|\+৮৮০|0|০)[\d০-৯\-\s]{8,}")
 EMAIL = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")
-FIELDS = ("name", "designation", "phone", "email", "photo_url")
+FIELDS = ("name", "designation", "phone", "email", "photo_url", "extra")
 CARD = re.compile(r"officer|member|staff|profile|card", re.I)
+LABELS = {"নাম": "name", "পদবি": "designation", "ইমেইল": "email", "ই-মেইল": "email",
+          "মোবাইল": "phone", "অফিস": "office", "ফোন (অফিস)": "office_phone",
+          "ইন্টারকম": "intercom", "কক্ষ নম্বর": "room", "ফ্যাক্স": "fax", "ওয়েব পোর্টাল": "web"}
 
 def get(url, **kw):
     """সরকারি সাইটের অসম্পূর্ণ SSL সনদ থাকলে যাচাই ছাড়া আবার চেষ্টা করে।"""
@@ -33,9 +36,47 @@ def api(method, path, **kw):
 
 def clean(t): return re.sub(r"\s+", " ", t or "").strip()
 
+def label_of(tr):
+    c = tr.find(["th", "td"])
+    return clean(c.get_text(" ")).rstrip(":：").strip() if c else ""
+
+def parse_labeled(s, base):
+    """"লেবেল | মান" সারির কাঠামো: 'নাম' সারি এলে নতুন কর্মকর্তা শুরু হয়।"""
+    out, cur, last_img = [], None, None
+    def src(img):
+        return urljoin(base + "/", img["src"]) if img is not None and img.get("src") else None
+    for el in s.find_all(["img", "tr"]):
+        if el.name == "img":
+            last_img = el; continue
+        cells = el.find_all(["th", "td"], recursive=False)
+        if len(cells) < 2: continue
+        f = LABELS.get(label_of(el))
+        if not f: continue
+        val = clean(cells[1].get_text(" "))
+        if f == "name":
+            own = el.find("img")
+            tbl = el.find_parent("table")
+            if own is None and tbl is not None:
+                if sum(1 for t in tbl.find_all("tr") if label_of(t) == "নাম") <= 1:
+                    own = tbl.find("img")
+                if own is None and tbl.parent is not None and len(tbl.parent.find_all("table")) == 1:
+                    own = tbl.parent.find("img")
+            cur = {"name": val, "designation": None, "phone": None, "email": None,
+                   "photo_url": src(own if own is not None else last_img), "extra": {}}
+            out.append(cur); last_img = None
+        elif cur is not None and val:
+            if f == "email": cur["email"] = val.replace(" ", "")
+            elif f in ("designation", "phone"): cur[f] = val
+            else: cur["extra"][f] = val
+    for o in out:
+        o["extra"] = o["extra"] or None
+    return [o for o in out if o["name"]]
+
 def parse(html, base):
-    """টেবিল-সারি বা কার্ড-ধরনের তালিকা থেকে কর্মকর্তা বের করে। প্রথম রানের পর সাইট অনুযায়ী ঠিক করতে হতে পারে।"""
-    s = BeautifulSoup(html, "html.parser"); out = []; blocks = []
+    s = BeautifulSoup(html, "html.parser")
+    out = parse_labeled(s, base)
+    if out: return out
+    blocks = []
     for tr in s.select("table tr"):
         if len(tr.find_all("td")) >= 2:
             blocks.append((tr, [clean(td.get_text(" ")) for td in tr.find_all("td")]))
@@ -53,11 +94,11 @@ def parse(html, base):
         if not rest: continue
         img = el.find("img")
         out.append({"name": rest[0], "designation": rest[1] if len(rest) > 1 else None,
-                    "phone": phone, "email": email,
+                    "phone": phone, "email": email, "extra": None,
                     "photo_url": urljoin(base + "/", img["src"]) if img and img.get("src") else None})
     return out
 
-def key_of(name): return hashlib.sha1(clean(name).encode()).hexdigest()[:16]
+def key_of(name, desig): return hashlib.sha1(clean(f"{name}|{desig or ''}").encode()).hexdigest()[:16]
 
 def upload_photo(office_id, key, url):
     try:
@@ -79,7 +120,7 @@ def run_office(o):
         old = {x["key"]: x for x in api("GET", f"officers?office_id=eq.{o['id']}&select=*&limit=2000")}
         seen, upserts, log = set(), [], []
         for row in rows:
-            k = key_of(row["name"]); seen.add(k); ex = old.get(k)
+            k = key_of(row["name"], row["designation"]); seen.add(k); ex = old.get(k)
             if ex and ex["locked"]: continue
             changed = (not ex) or (not ex["active"]) or any(ex.get(f) != row[f] for f in FIELDS)
             if not changed and not (FULL_PHOTOS and row["photo_url"]): continue
