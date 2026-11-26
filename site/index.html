@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>মৎস্য অধিদপ্তর – কর্মকর্তা ও কর্মচারী নির্দেশিকা</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#10262b;--water:#0e6e73;--mist:#eef4f3;--line:#cbdad8;--signal:#c98a00;--bg:#fff;--mute:#4d6469}
+@media (prefers-color-scheme:dark){:root{--ink:#e6f1f0;--water:#5fc4c9;--mist:#14272b;--line:#2b4549;--signal:#e3b341;--bg:#0c1a1d;--mute:#9db5b8}}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Noto Sans Bengali",system-ui,sans-serif;background:var(--bg);color:var(--ink);line-height:1.6}
+header{background:var(--water);color:#fff;padding:28px 20px 24px}
+header h1{margin:0;font-size:clamp(1.4rem,4vw,2.1rem);font-weight:800;max-width:760px}
+header p{margin:6px 0 0;opacity:.9}
+main{max-width:860px;margin:0 auto;padding:16px 20px 60px}
+.filters{display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px;margin:-34px 0 16px}
+@media(max-width:640px){.filters{grid-template-columns:1fr}}
+input,select{font:inherit;padding:11px 12px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);width:100%}
+input:focus,select:focus,button:focus-visible,a:focus-visible{outline:3px solid var(--signal);outline-offset:1px}
+.count{color:var(--mute);margin:8px 0}
+.row{display:grid;grid-template-columns:64px 1fr;gap:14px;padding:14px 0;border-bottom:1px solid var(--line)}
+.ph{width:64px;height:64px;border-radius:50%;object-fit:cover;background:var(--mist);display:grid;place-items:center;font-weight:800;color:var(--water);font-size:1.4rem}
+.n{font-weight:600;font-size:1.05rem}.d{color:var(--water);font-weight:600}.o{color:var(--mute);font-size:.92rem}
+.c a{color:var(--ink);margin-right:14px;font-size:.92rem}
+.more{display:block;margin:20px auto;padding:11px 26px;font:inherit;font-weight:600;border:2px solid var(--water);background:none;color:var(--water);border-radius:6px;cursor:pointer}
+.msg{padding:30px 0;color:var(--mute)}
+</style>
+</head>
+<body>
+<header><h1>মৎস্য অধিদপ্তর কর্মকর্তা ও কর্মচারী নির্দেশিকা</h1>
+<p>প্রধান কার্যালয় থেকে উপজেলা পর্যন্ত সকল দপ্তরের তালিকা</p></header>
+<main>
+<div class="filters">
+<input id="q" type="search" placeholder="নাম বা পদবি লিখে খুঁজুন" aria-label="খুঁজুন">
+<select id="type" aria-label="দপ্তরের ধরন"><option value="">সব ধরনের দপ্তর</option></select>
+<select id="district" aria-label="জেলা"><option value="">সব জেলা</option></select>
+</div>
+<div class="count" id="count"></div>
+<div id="list"></div>
+<button class="more" id="more" hidden>আরও দেখান</button>
+</main>
+<script>
+// Supabase > Project Settings > API থেকে এই দুটি মান বসান (anon key প্রকাশ্য হলে সমস্যা নেই)
+const SUPABASE_URL = "https://YOUR-PROJECT.supabase.co";
+const ANON_KEY = "YOUR-ANON-KEY";
+const PAGE = 40;
+const H = {apikey: ANON_KEY, Authorization: "Bearer " + ANON_KEY};
+const $ = id => document.getElementById(id);
+let offset = 0, total = 0, timer;
+
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+async function loadFilters(){
+  try{
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/offices?select=type,district&active=eq.true&limit=2000`, {headers:H});
+    const rows = await r.json();
+    for (const [id,key] of [["type","type"],["district","district"]]){
+      [...new Set(rows.map(x=>x[key]).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"bn"))
+        .forEach(v => $(id).add(new Option(v, v)));
+    }
+  }catch(e){}
+}
+
+function card(x){
+  const o = x.offices || {};
+  const photo = x.photo_path
+    ? `<img class="ph" loading="lazy" alt="${esc(x.name)}" src="${SUPABASE_URL}/storage/v1/object/public/photos/${x.photo_path}">`
+    : `<div class="ph" aria-hidden="true">${esc([...x.name][0])}</div>`;
+  const contact = [x.phone && `<a href="tel:${esc(x.phone)}">${esc(x.phone)}</a>`,
+                   x.email && `<a href="mailto:${esc(x.email)}">${esc(x.email)}</a>`].filter(Boolean).join("");
+  return `<div class="row">${photo}<div><div class="n">${esc(x.name)}</div>
+    <div class="d">${esc(x.designation)}</div><div class="o">${esc(o.name)}</div>
+    <div class="c">${contact}</div></div></div>`;
+}
+
+async function load(reset){
+  if (reset){ offset = 0; $("list").innerHTML = ""; }
+  const q = $("q").value.trim().replace(/[*,()]/g, " ");
+  const p = new URLSearchParams({select:"name,designation,phone,email,photo_path,offices!inner(name,type,district)", active:"eq.true", order:"id"});
+  if ($("type").value) p.set("offices.type", "eq." + $("type").value);
+  if ($("district").value) p.set("offices.district", "eq." + $("district").value);
+  if (q) p.set("or", `(name.ilike.*${q}*,designation.ilike.*${q}*)`);
+  try{
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/officers?${p}`, {headers:{...H, Range:`${offset}-${offset+PAGE-1}`, Prefer:"count=exact"}});
+    if (!r.ok && r.status !== 206) throw new Error();
+    total = +(r.headers.get("content-range")||"").split("/")[1] || 0;
+    const rows = await r.json();
+    $("list").insertAdjacentHTML("beforeend", rows.map(card).join(""));
+    offset += rows.length;
+    $("count").textContent = total ? `মোট ${total.toLocaleString("bn-BD")} জন` : "";
+    $("more").hidden = offset >= total;
+    if (!total) $("list").innerHTML = '<div class="msg">কোনো ফল পাওয়া যায়নি। অন্য শব্দ বা ফিল্টার দিয়ে চেষ্টা করুন।</div>';
+  }catch(e){ $("list").innerHTML = '<div class="msg">তথ্য আনা যায়নি। ইন্টারনেট দেখে পেজ রিলোড করুন।</div>'; }
+}
+
+$("q").addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(()=>load(true), 350); });
+$("type").addEventListener("change", () => load(true));
+$("district").addEventListener("change", () => load(true));
+$("more").addEventListener("click", () => load(false));
+loadFilters(); load(true);
+</script>
+</body>
+</html>
