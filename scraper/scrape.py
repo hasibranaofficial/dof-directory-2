@@ -19,7 +19,7 @@ CARD = re.compile(r"officer|member|staff|profile|card", re.I)
 def api(method, path, **kw):
     h = {**H, "Content-Type": "application/json", **kw.pop("headers", {})}
     r = requests.request(method, f"{URL}/rest/v1/{path}", headers=h, timeout=60, **kw)
-        if not r.ok: print("API ERROR", r.status_code, r.text[:300])
+    if not r.ok: print("API ERROR", r.status_code, r.text[:300])
     r.raise_for_status()
     return r.json() if r.text else None
 
