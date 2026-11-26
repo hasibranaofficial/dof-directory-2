@@ -1,5 +1,5 @@
-"""প্রতিদিন সব অফিসের কর্মকর্তা-কর্মচারীর তালিকা সংগ্রহ ও আপডেট।"""
-import os, re, csv, hashlib, requests, urllib3
+"""প্রতিদিন সব অফিসের কর্মকর্তা-কর্মচারীর তালিকা সংগ্রহ ও আপডেট (প্রতিজনের 'দেখুন' পেজসহ)।"""
+import os, re, csv, hashlib, datetime, requests, urllib3
 from concurrent.futures import ThreadPoolExecutor
 from urllib.parse import urljoin
 from bs4 import BeautifulSoup
@@ -17,6 +17,9 @@ EMAIL = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")
 FIELDS = ("name", "name_en", "designation", "phone", "email", "photo_url",
           "join_date", "cadre_id", "bcs_batch", "extra")
 CARD = re.compile(r"officer|member|staff|profile|card", re.I)
+NOW = datetime.datetime.now(datetime.timezone.utc)
+WEEK_AGO = (NOW - datetime.timedelta(days=7)).isoformat()[:19]
+DEBUG_LEFT = [3]   # প্রথম ৩টি 'দেখুন' পেজের লেবেল লগে ছাপা হবে
 
 def get(url, **kw):
     """সরকারি সাইটের অসম্পূর্ণ SSL সনদ থাকলে যাচাই ছাড়া আবার চেষ্টা করে।"""
@@ -47,8 +50,8 @@ def field_of(l):
     if "ইমেইল" in l or "ই-মেইল" in l or "ই মেইল" in l or "email" in low: return "email"
     if "মোবাইল" in l: return "phone"
     if "যোগদান" in l: return "join_date"
-    if "ক্যাডার" in l: return "cadre_id"
-    if "বিসিএস" in l or "bcs" in low: return "bcs_batch"
+    if "ক্যাডার" in l or "cadre" in low: return "cadre_id"
+    if "বিসিএস" in l or "bcs" in low or "ব্যাচ" in l: return "bcs_batch"
     if "কক্ষ" in l: return "room"
     if "ওয়েব" in l: return "web"
     if "ইন্টারকম" in l: return "intercom"
@@ -59,16 +62,23 @@ def field_of(l):
 
 def blank(name, photo):
     return {"name": name, "name_en": None, "designation": None, "phone": None, "email": None,
-            "photo_url": photo, "join_date": None, "cadre_id": None, "bcs_batch": None, "extra": {}}
+            "photo_url": photo, "join_date": None, "cadre_id": None, "bcs_batch": None,
+            "extra": {}, "_url": None}
 
 def parse_labeled(s, base):
-    """"লেবেল | মান" সারির কাঠামো: 'নাম' সারি এলে নতুন কর্মকর্তা শুরু হয়।"""
+    """"লেবেল | মান" সারির কাঠামো: 'নাম' সারি এলে নতুন কর্মকর্তা শুরু হয়; 'দেখুন' লিংকও ধরা হয়।"""
     out, cur, last_img = [], None, None
     def src(img):
         return urljoin(base + "/", img["src"]) if img is not None and img.get("src") else None
-    for el in s.find_all(["img", "tr"]):
+    for el in s.find_all(["img", "tr", "a"]):
         if el.name == "img":
             last_img = el; continue
+        if el.name == "a":
+            href = el.get("href") or ""
+            if cur is not None and not cur["_url"] and not href.startswith(("mailto:", "tel:", "#")) \
+               and (re.search(r"/officers/[^?#/]+", href) or "দেখুন" in el.get_text()):
+                cur["_url"] = urljoin(base + "/", href)
+            continue
         cells = el.find_all(["th", "td"], recursive=False)
         if len(cells) < 2: continue
         label = label_of(el)
@@ -121,8 +131,67 @@ def parse(html, base):
         o["phone"] = clean(pm.group()) if pm else None
         o["email"] = em.group() if em else None
         o["extra"] = None
+        a = el.find("a", href=re.compile(r"/officers/[^?#/]+"))
+        if a: o["_url"] = urljoin(base + "/", a["href"])
         out.append(o)
     return out
+
+def detail_pairs(s):
+    """'দেখুন' পেজ থেকে (লেবেল, মান) জোড়া: টেবিল, dt/dd, দুই-অংশের ব্লক ও 'লেবেল: মান' লাইন।"""
+    pairs = []
+    for tr in s.find_all("tr"):
+        c = tr.find_all(["th", "td"], recursive=False)
+        if len(c) >= 2: pairs.append((clean(c[0].get_text(" ")).rstrip(":：").strip(), clean(c[1].get_text(" "))))
+    for dt in s.find_all("dt"):
+        dd = dt.find_next_sibling("dd")
+        if dd: pairs.append((clean(dt.get_text(" ")).rstrip(":：").strip(), clean(dd.get_text(" "))))
+    for el in s.find_all(["div", "li", "p", "section"]):
+        kids = [k for k in el.find_all(True, recursive=False)]
+        if len(kids) == 2 and not any(k.find(True) and len(k.find_all(True)) > 3 for k in kids):
+            a, b = clean(kids[0].get_text(" ")).rstrip(":：").strip(), clean(kids[1].get_text(" "))
+            if a and b and len(a) <= 40 and not field_of(a).startswith("x:"): pairs.append((a, b))
+    for line in s.get_text("\n").split("\n"):
+        line = clean(line)
+        for sep in (":", "："):
+            if sep in line:
+                a, b = [x.strip() for x in line.split(sep, 1)]
+                if a and b and len(a) <= 40 and not field_of(a).startswith("x:"): pairs.append((a, b))
+                break
+    return pairs
+
+def parse_detail(html):
+    s = BeautifulSoup(html, "html.parser")
+    for t in s(["script", "style", "noscript"]): t.decompose()
+    res = {"extra": {}}
+    for label, val in detail_pairs(s):
+        if not label or not val: continue
+        f = field_of(label)
+        if f in ("name", "designation", "phone", "name_en", "join_date", "cadre_id", "bcs_batch"):
+            res.setdefault(f, val)
+        elif f == "email": res.setdefault("email", val.replace(" ", ""))
+        elif f == "office": pass
+        elif f.startswith("x:"): pass   # অচেনা লেবেল (যেমন জন্মতারিখ, ঠিকানা) নিরাপত্তার জন্য সংরক্ষণ করা হয় না
+        else: res["extra"].setdefault(f, val)
+    return res
+
+def fill_detail(row):
+    """প্রতিজনের 'দেখুন' পেজ থেকে ক্যাডার আইডি, বিসিএস ব্যাচ, যোগদানের তারিখ ইত্যাদি আনে।"""
+    try:
+        r = get(row["_url"], timeout=45); r.raise_for_status()
+        d = parse_detail(r.text)
+        if DEBUG_LEFT[0] > 0:
+            DEBUG_LEFT[0] -= 1
+            print("DETAIL নমুনা:", row["name"], "->", {k: v for k, v in d.items() if k != "extra"}, "extra:", d["extra"])
+        if d.get("name") and clean(d["name"]) != clean(row["name"]):
+            print("সতর্কতা: নাম মেলেনি", row["name"], "|", d["name"]); return
+        for f in ("cadre_id", "bcs_batch", "join_date"):
+            if d.get(f): row[f] = d[f]
+        for f in ("designation", "phone", "email", "name_en"):
+            if not row[f] and d.get(f): row[f] = d[f]
+        if d["extra"]: row["extra"] = {**(row["extra"] or {}), **d["extra"]}
+        row["detail_at"] = NOW.isoformat()
+    except Exception as e:
+        print("দেখুন পেজ ব্যর্থ", row.get("_url"), str(e)[:100])
 
 def key_of(name, desig): return hashlib.sha1(clean(f"{name}|{desig or ''}").encode()).hexdigest()[:16]
 
@@ -144,16 +213,29 @@ def run_office(o):
         rows = parse(r.text, o["base_url"].rstrip("/"))
         if not rows: raise ValueError("কোনো কর্মকর্তা পাওয়া যায়নি (পেজ কাঠামো আলাদা হতে পারে)")
         old = {x["key"]: x for x in api("GET", f"officers?office_id=eq.{o['id']}&select=*&limit=2000")}
+        todo = []
+        for row in rows:
+            row["_k"] = key_of(row["name"], row["designation"]); ex = old.get(row["_k"]); row["_ex"] = ex
+            row["detail_at"] = ex.get("detail_at") if ex else None
+            if ex:   # বিস্তারিত না আনলে আগের মান ধরে রাখা
+                for f in ("cadre_id", "bcs_batch", "join_date"): row[f] = ex.get(f)
+                row["extra"] = {**(ex.get("extra") or {}), **(row["extra"] or {})} or None
+            stale = (not ex) or (not ex.get("detail_at")) or ex["detail_at"][:19] < WEEK_AGO
+            if row["_url"] and not (ex and ex["locked"]) and stale: todo.append(row)
+        if todo:
+            with ThreadPoolExecutor(3) as tp: list(tp.map(fill_detail, todo))
         seen, upserts, log = set(), [], []
         for row in rows:
-            k = key_of(row["name"], row["designation"]); seen.add(k); ex = old.get(k)
+            k, ex = row["_k"], row["_ex"]; seen.add(k)
             if ex and ex["locked"]: continue
             changed = (not ex) or (not ex["active"]) or any(ex.get(f) != row[f] for f in FIELDS)
-            if not changed and not (FULL_PHOTOS and row["photo_url"]): continue
+            fetched = row in todo and row["detail_at"] != (ex or {}).get("detail_at")
+            if not changed and not fetched and not (FULL_PHOTOS and row["photo_url"]): continue
             photo_path = ex["photo_path"] if ex else None
             if row["photo_url"] and (not ex or ex["photo_url"] != row["photo_url"] or not photo_path or FULL_PHOTOS):
                 photo_path = upload_photo(o["id"], k, row["photo_url"]) or photo_path
-            upserts.append({**row, "office_id": o["id"], "key": k, "photo_path": photo_path,
+            upserts.append({**{f: row[f] for f in FIELDS}, "detail_at": row["detail_at"],
+                            "office_id": o["id"], "key": k, "photo_path": photo_path,
                             "active": True, "missed_runs": 0})
             if changed:
                 log.append({"office_id": o["id"], "officer_key": k, "action": "update" if ex else "add",
