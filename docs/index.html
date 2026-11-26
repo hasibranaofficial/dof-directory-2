@@ -38,17 +38,23 @@ input:focus,button:focus-visible,a:focus-visible{outline:2px solid var(--acc);ou
 .lnk div{min-width:0}.lnk b{font-weight:500;display:block;line-height:1.4}
 .lnk small{color:var(--mute);font-size:13px}
 .lnk svg{flex:none;width:18px;height:18px;stroke:var(--mute)}
-.item{display:flex;gap:14px;padding:16px 0;border-bottom:1px solid var(--line)}
+.item{border-bottom:1px solid var(--line)}
+.row{display:flex;align-items:center;gap:10px;padding:14px 0}
+.main{flex:1;min-width:0;display:flex;align-items:center;gap:14px;text-align:left;background:none;border:0;color:inherit;font:inherit;padding:0;cursor:pointer}
+.n,.d{display:block}
 .av{flex:none;width:56px;height:56px;border-radius:50%;object-fit:cover;background:var(--accbg);color:var(--acc);display:grid;place-items:center;font-weight:700;font-size:20px}
 .t{flex:1;min-width:0}
 .n{font-weight:500;font-size:17px;line-height:1.35}
 .e{color:var(--mute);font-size:13px}
 .d{color:var(--acc);font-size:14px;font-weight:500;line-height:1.4}
-.m{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;margin-top:8px;font-size:13px}
+.more{display:none;margin:0 0 14px 70px;padding:12px 14px;background:var(--card);border:1px solid var(--line);border-radius:14px}
+.item.open .more{display:block}
+.m{display:grid;grid-template-columns:auto 1fr;gap:7px 14px;font-size:14px}
+.m i{color:var(--mute);font-style:normal}
 .m b{font-weight:400;color:var(--mute)}.m span{word-break:break-word}
 .m a{color:var(--acc)}
 .o{color:var(--mute);font-size:13px;margin-top:6px}
-.call{flex:none;align-self:flex-start;width:44px;height:44px;border-radius:50%;background:var(--accbg);display:grid;place-items:center}
+.call{flex:none;width:44px;height:44px;border-radius:50%;background:var(--accbg);display:grid;place-items:center}
 .call svg{width:20px;height:20px;stroke:var(--acc)}
 .msg{padding:48px 0;text-align:center;color:var(--mute)}
 #end{height:1px}
@@ -138,28 +144,30 @@ function searchView(q){
   start({q});
 }
 
-function line(label, html){ return `<b>${label}</b><span>${html}</span>`; }
+const tidy = v => String(v || "").replace(/[\s।.]+$/, "");
 function item(x, showOffice){
-  const ex = x.extra || {};
+  const ex = x.extra || {}, dash = "<i>—</i>";
   const av = x.photo_path
     ? `<img class="av" loading="lazy" alt="${esc(initial(x.name))}" src="${SUPABASE_URL}/storage/v1/object/public/photos/${esc(x.photo_path)}">`
     : `<div class="av" aria-hidden="true">${esc(initial(x.name))}</div>`;
   const web = ex.web ? (/^(https?:\/\/|www\.)/i.test(ex.web) ? `<a href="${esc(/^www\./i.test(ex.web) ? "https://" + ex.web : ex.web)}" target="_blank" rel="noopener">${esc(ex.web)}</a>` : esc(ex.web)) : "";
   const rows = [
-    web && line("ওয়েব পোর্টাল", web),
-    x.email && line("ই-মেইল", `<a href="mailto:${esc(x.email)}">${esc(x.email)}</a>`),
-    ex.room && line("কক্ষ নং", esc(ex.room)),
-    x.join_date && line("যোগদানের তারিখ", esc(x.join_date)),
-    x.cadre_id && line("ক্যাডার আইডি", esc(x.cadre_id)),
-    x.bcs_batch && line("বিসিএস ব্যাচ", esc(x.bcs_batch)),
-    x.phone && line("মোবাইল", `<a href="tel:${esc(en(x.phone))}">${esc(x.phone)}</a>`),
-    ...Object.keys(EXTRA_LABELS).filter(k => ex[k]).map(k => line(EXTRA_LABELS[k], esc(ex[k]))),
-    ...Object.keys(ex).filter(k => !["web","room","office","office_phone","intercom","fax"].includes(k)).map(k => line(esc(k), esc(ex[k])))
-  ].filter(Boolean).join("");
-  return `<article class="item">${av}<div class="t"><div class="n">${esc(x.name)}</div>${x.name_en ? `<div class="e">${esc(x.name_en)}</div>` : ""}
-    <div class="d">${esc(x.designation)}</div>${rows ? `<div class="m">${rows}</div>` : ""}
-    ${showOffice && x.offices ? `<div class="o">${esc(x.offices.name)}</div>` : ""}</div>
-    ${x.phone ? `<a class="call" href="tel:${esc(en(x.phone))}" aria-label="কল করুন">${CALL}</a>` : ""}</article>`;
+    ["ক্যাডার আইডি", x.cadre_id ? esc(x.cadre_id) : dash],
+    ["বিসিএস ব্যাচ", x.bcs_batch ? esc(x.bcs_batch) : dash],
+    ["মোবাইল", x.phone ? `<a href="tel:${esc(en(x.phone))}">${esc(x.phone)}</a>` : dash],
+    ["ই-মেইল", x.email ? `<a href="mailto:${esc(x.email)}">${esc(x.email)}</a>` : dash],
+    ["যোগদানের তারিখ", x.join_date ? esc(x.join_date) : dash],
+    ex.room && ["কক্ষ নং", esc(ex.room)],
+    web && ["ওয়েব পোর্টাল", web],
+    ...Object.keys(EXTRA_LABELS).filter(k => ex[k]).map(k => [EXTRA_LABELS[k], esc(ex[k])]),
+    ...Object.keys(ex).filter(k => !["web","room","office","office_phone","intercom","fax"].includes(k)).map(k => [esc(k), esc(ex[k])]),
+    x.name_en && ["ইংরেজি নাম", esc(x.name_en)],
+    showOffice && x.offices && ["দপ্তর", esc(x.offices.name)]
+  ].filter(Boolean).map(r => `<b>${r[0]}</b><span>${r[1]}</span>`).join("");
+  return `<article class="item"><div class="row"><button class="main" aria-expanded="false">${av}
+    <span class="t"><span class="n">${esc(x.name)}</span><span class="d">${esc(tidy(x.designation))}</span></span></button>
+    ${x.phone ? `<a class="call" href="tel:${esc(en(x.phone))}" aria-label="কল করুন">${CALL}</a>` : ""}</div>
+    <div class="more"><div class="m">${rows}</div></div></article>`;
 }
 
 function start(mode){ st = {mode, offset:0, total:0, busy:false, done:false, token:st.token + 1}; $("list").innerHTML = ""; if ($("count")) $("count").textContent = "লোড হচ্ছে…"; fetchMore(); }
@@ -196,6 +204,11 @@ function route(){
   window.scrollTo(0, 0);
 }
 
+$("list").addEventListener("click", e => {
+  const b = e.target.closest(".main"); if (!b) return;
+  const open = b.closest(".item").classList.toggle("open");
+  b.setAttribute("aria-expanded", open);
+});
 document.addEventListener("error", e => {
   const t = e.target;
   if (t.tagName === "IMG" && t.classList.contains("av")){
