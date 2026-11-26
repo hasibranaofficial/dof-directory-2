@@ -1,9 +1,10 @@
 """প্রতিদিন সব অফিসের কর্মকর্তা-কর্মচারীর তালিকা সংগ্রহ ও আপডেট।"""
-import os, re, csv, hashlib, requests
+import os, re, csv, hashlib, requests, urllib3
 from concurrent.futures import ThreadPoolExecutor
 from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 
+urllib3.disable_warnings()
 URL = os.environ["SUPABASE_URL"].rstrip("/")
 KEY = os.environ["SUPABASE_SERVICE_KEY"]
 PATH = os.environ.get("OFFICERS_PATH", "/pages/officers?page=1&page_size=250")
@@ -15,6 +16,13 @@ PHONE = re.compile(r"(?:\+?880|\+৮৮০|0|০)[\d০-৯\-\s]{8,}")
 EMAIL = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")
 FIELDS = ("name", "designation", "phone", "email", "photo_url")
 CARD = re.compile(r"officer|member|staff|profile|card", re.I)
+
+def get(url, **kw):
+    """সরকারি সাইটের অসম্পূর্ণ SSL সনদ থাকলে যাচাই ছাড়া আবার চেষ্টা করে।"""
+    try:
+        return requests.get(url, headers=UA, **kw)
+    except requests.exceptions.SSLError:
+        return requests.get(url, headers=UA, verify=False, **kw)
 
 def api(method, path, **kw):
     h = {**H, "Content-Type": "application/json", **kw.pop("headers", {})}
@@ -53,7 +61,7 @@ def key_of(name): return hashlib.sha1(clean(name).encode()).hexdigest()[:16]
 
 def upload_photo(office_id, key, url):
     try:
-        r = requests.get(url, headers=UA, timeout=40); r.raise_for_status()
+        r = get(url, timeout=40); r.raise_for_status()
         ctype = r.headers.get("content-type", "image/jpeg")
         path = f"{office_id}/{key}.{'png' if 'png' in ctype else 'jpg'}"
         u = requests.post(f"{URL}/storage/v1/object/photos/{path}", data=r.content, timeout=60,
@@ -64,7 +72,7 @@ def upload_photo(office_id, key, url):
 
 def run_office(o):
     try:
-        r = requests.get(o["base_url"].rstrip("/") + PATH, headers=UA, timeout=45)
+        r = get(o["base_url"].rstrip("/") + PATH, timeout=45)
         r.raise_for_status()
         rows = parse(r.text, o["base_url"].rstrip("/"))
         if not rows: raise ValueError("কোনো কর্মকর্তা পাওয়া যায়নি (পেজ কাঠামো আলাদা হতে পারে)")
