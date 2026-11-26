@@ -12,37 +12,44 @@
 :root{--bg:#fafaf8;--card:#fff;--ink:#14201f;--mute:#667876;--line:#e6ebea;--acc:#0b6e6e;--accbg:#e4f2f1}
 @media(prefers-color-scheme:dark){:root{--bg:#0b1415;--card:#111d1e;--ink:#e8f1f0;--mute:#8fa5a3;--line:#1f3032;--acc:#5ec4c2;--accbg:#14302f}}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html{scroll-padding-top:150px}
+html{scroll-padding-top:80px}
 body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.55 "Noto Sans Bengali",system-ui,sans-serif;padding-bottom:env(safe-area-inset-bottom)}
 .wrap{max-width:720px;margin:0 auto;padding:0 18px}
-header{padding:calc(28px + env(safe-area-inset-top)) 0 14px}
-header small{display:block;color:var(--acc);font-weight:500;font-size:14px;letter-spacing:.2px}
-header h1{margin:2px 0 0;font-size:27px;line-height:1.25;font-weight:700}
+header{padding:calc(26px + env(safe-area-inset-top)) 0 14px}
+header small{display:block;color:var(--acc);font-weight:500;font-size:14px}
+header h1{margin:2px 0 0;font-size:26px;line-height:1.25;font-weight:700}
 .bar{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);padding:10px 0 12px;border-bottom:1px solid var(--line)}
-.bar .wrap{display:grid;gap:8px}
 .search{position:relative}
 .search svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:20px;height:20px;stroke:var(--mute)}
-input,select{font:inherit;font-size:16px;width:100%;height:48px;border:1px solid var(--line);border-radius:14px;background:var(--card);color:var(--ink);padding:0 14px;appearance:none;-webkit-appearance:none}
-input{padding-left:44px}
-.f{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-select{height:42px;font-size:14px;padding-right:30px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none' stroke='%23889' stroke-width='2'%3E%3Cpath d='m1 1 5 5 5-5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
-input:focus,select:focus,button:focus-visible,a:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
-.count{padding:14px 0 4px;color:var(--mute);font-size:14px;min-height:36px}
-.item{border-bottom:1px solid var(--line)}
-.row{display:flex;align-items:center;gap:10px;padding:14px 0}
-.main{flex:1;min-width:0;display:flex;align-items:center;gap:14px;text-align:left;background:none;border:0;color:inherit;font:inherit;padding:0;cursor:pointer}
-.av{flex:none;width:54px;height:54px;border-radius:50%;object-fit:cover;background:var(--accbg);color:var(--acc);display:grid;place-items:center;font-weight:700;font-size:20px}
-.t{min-width:0}
+input{font:inherit;font-size:16px;width:100%;height:48px;border:1px solid var(--line);border-radius:14px;background:var(--card);color:var(--ink);padding:0 14px 0 44px;-webkit-appearance:none;appearance:none}
+input:focus,button:focus-visible,a:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.hint{color:var(--mute);font-size:12px;margin:6px 4px 0}
+.crumb{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;padding:14px 0 4px;font-size:14px;color:var(--mute)}
+.crumb a{color:var(--acc);text-decoration:none;font-weight:500}
+.ttl{margin:6px 0 2px;font-size:21px;font-weight:700;line-height:1.35}
+.count{color:var(--mute);font-size:14px;padding:2px 0 6px;min-height:28px}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:18px 0}
+.tile{display:flex;flex-direction:column;justify-content:space-between;min-height:104px;padding:14px;border:1px solid var(--line);border-radius:18px;background:var(--card);color:inherit;text-decoration:none}
+.tile:active{background:var(--accbg)}
+.tile b{font-weight:500;font-size:16px;line-height:1.4}
+.tile span{color:var(--acc);font-size:13px;font-weight:500}
+.tile.wide{grid-column:1/-1;min-height:84px}
+.lnk{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:60px;padding:10px 0;border-bottom:1px solid var(--line);color:inherit;text-decoration:none}
+.lnk div{min-width:0}.lnk b{font-weight:500;display:block;line-height:1.4}
+.lnk small{color:var(--mute);font-size:13px}
+.lnk svg{flex:none;width:18px;height:18px;stroke:var(--mute)}
+.item{display:flex;gap:14px;padding:16px 0;border-bottom:1px solid var(--line)}
+.av{flex:none;width:56px;height:56px;border-radius:50%;object-fit:cover;background:var(--accbg);color:var(--acc);display:grid;place-items:center;font-weight:700;font-size:20px}
+.t{flex:1;min-width:0}
 .n{font-weight:500;font-size:17px;line-height:1.35}
+.e{color:var(--mute);font-size:13px}
 .d{color:var(--acc);font-size:14px;font-weight:500;line-height:1.4}
-.o{color:var(--mute);font-size:13px;line-height:1.4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.act{display:flex;gap:8px;flex:none}
-.act a{width:44px;height:44px;border-radius:50%;background:var(--accbg);display:grid;place-items:center}
-.act svg{width:20px;height:20px;stroke:var(--acc)}
-.more{display:none;margin:0 0 16px 68px;padding:12px 14px;background:var(--card);border:1px solid var(--line);border-radius:14px;font-size:14px}
-.item.open .more{display:grid;gap:6px}
-.more div{display:flex;gap:10px}.more b{font-weight:500;color:var(--mute);min-width:84px}
-.more span{word-break:break-word}
+.m{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;margin-top:8px;font-size:13px}
+.m b{font-weight:400;color:var(--mute)}.m span{word-break:break-word}
+.m a{color:var(--acc)}
+.o{color:var(--mute);font-size:13px;margin-top:6px}
+.call{flex:none;align-self:flex-start;width:44px;height:44px;border-radius:50%;background:var(--accbg);display:grid;place-items:center}
+.call svg{width:20px;height:20px;stroke:var(--acc)}
 .msg{padding:48px 0;text-align:center;color:var(--mute)}
 #end{height:1px}
 footer{padding:24px 0 36px;text-align:center;color:var(--mute);font-size:12px}
@@ -50,92 +57,155 @@ footer{padding:24px 0 36px;text-align:center;color:var(--mute);font-size:12px}
 </head>
 <body>
 <div class="wrap"><header><small>মৎস্য অধিদপ্তর, বাংলাদেশ</small><h1>কর্মকর্তা ও কর্মচারী নির্দেশিকা</h1></header></div>
-<div class="bar"><div class="wrap">
-<div class="search"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-<input id="q" type="search" placeholder="নাম বা পদবি খুঁজুন" aria-label="খুঁজুন" enterkeyhint="search" autocomplete="off"></div>
-<div class="f"><select id="type" aria-label="দপ্তরের ধরন"><option value="">সব দপ্তর</option></select>
-<select id="district" aria-label="জেলা"><option value="">সব জেলা</option></select></div>
-</div></div>
-<main class="wrap"><div class="count" id="count" aria-live="polite"></div><div id="list"></div><div id="end"></div></main>
+<div class="bar"><div class="wrap"><div class="search">
+<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+<input id="q" type="search" placeholder="নাম, পদবি বা ক্যাডার আইডি দিয়ে খুঁজুন" aria-label="খুঁজুন" enterkeyhint="search" autocomplete="off"></div></div></div>
+<main class="wrap"><div id="head"></div><div id="list"></div><div id="end"></div></main>
 <footer>তথ্য সরকারি ওয়েবসাইট থেকে প্রতিদিন স্বয়ংক্রিয়ভাবে হালনাগাদ হয়</footer>
 <script src="config.js"></script>
 <script>
 const {SUPABASE_URL, ANON_KEY} = window.CONFIG || {};
-const PAGE = 30, H = {apikey: ANON_KEY};
+const H = {apikey: ANON_KEY};
 if (String(ANON_KEY).startsWith("eyJ")) H.Authorization = "Bearer " + ANON_KEY;
+const PAGE = 30;
+const TYPES = ["সদর দপ্তর","বিভাগীয় দপ্তর","জেলা-উপজেলা ও খামার দপ্তরসমূহ","মাননিয়ন্ত্রণ দপ্তরসমূহ","মৎস্য প্রশিক্ষণ একাডেমি","প্রশিক্ষণ ও ডিপ্লোমা ইনস্টিটিউটসমূহ","সামুদ্রিক মৎস্য দপ্তর"];
+const GROUP = {1:"division", 2:"district"};          // কোন দপ্তরে কোন ঘর ধরে উপ-মেনু হবে
+const EXTRA_LABELS = {office_phone:"অফিস ফোন", intercom:"ইন্টারকম", fax:"ফ্যাক্স"};
+const CHEV = '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>';
+const CALL = '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>';
 const $ = id => document.getElementById(id);
-const LABELS = {office_phone:"অফিস ফোন", intercom:"ইন্টারকম", room:"কক্ষ নম্বর", fax:"ফ্যাক্স", web:"ওয়েব পোর্টাল"};
-const IC = {
-  call:'<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>',
-  mail:'<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>'};
-let offset = 0, total = 0, busy = false, done = true, token = 0, timer;
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const en = s => String(s).replace(/[০-৯]/g, d => "০১২৩৪৫৬৭৮৯".indexOf(d)).replace(/[^\d+]/g, "");
-const bn = n => n.toLocaleString("bn-BD");
+const bn = n => Number(n).toLocaleString("bn-BD");
 const initial = n => [...n.replace(/^(মো\.|মোঃ|ডা\.|ড\.)\s*/, "")][0] || "•";
+const cmp = (a, b) => String(a).localeCompare(String(b), "bn");
+let offices = [], st = {mode:null, offset:0, total:0, busy:false, done:true, token:0}, timer;
 
-async function loadFilters(){
-  try{
-    const rows = await (await fetch(`${SUPABASE_URL}/rest/v1/offices?select=type,district&active=eq.true&limit=2000`, {headers:H})).json();
-    for (const k of ["type","district"])
-      [...new Set(rows.map(x=>x[k]).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"bn")).forEach(v=>$(k).add(new Option(v,v)));
-  }catch(e){}
+const hashOf = o => "#" + Object.entries(o).filter(e => e[1] !== undefined && e[1] !== null && e[1] !== "")
+  .map(([k,v]) => k + "=" + encodeURIComponent(v)).join("&");
+const params = () => new URLSearchParams(location.hash.slice(1));
+
+async function loadOffices(){
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/offices?select=id,name,type,division,district,upazila&active=eq.true&limit=2000`, {headers:H});
+  if (!r.ok) throw 0;
+  offices = await r.json();
 }
 
-function item(x, i){
-  const o = x.offices || {}, ex = x.extra || {};
+function crumbs(parts){
+  return `<nav class="crumb" aria-label="পথ"><a href="#">নির্দেশিকা</a>` +
+    parts.map(p => `<span>›</span>` + (p[1] ? `<a href="${p[1]}">${esc(p[0])}</a>` : `<span>${esc(p[0])}</span>`)).join("") + `</nav>`;
+}
+
+function home(){
+  stopList();
+  $("head").innerHTML = "";
+  $("list").innerHTML = '<div class="tiles">' + TYPES.map((t,i) => {
+    const n = offices.filter(o => o.type === t).length;
+    return `<a class="tile${i === TYPES.length-1 && TYPES.length % 2 ? " wide" : ""}" href="${hashOf({t:i})}"><b>${esc(t)}</b><span>${n ? bn(n) + " টি দপ্তর" : "শীঘ্রই আসছে"}</span></a>`;
+  }).join("") + "</div>";
+}
+
+function categoryView(ti, g){
+  stopList();
+  const type = TYPES[ti]; if (!type) return home();
+  const all = offices.filter(o => o.type === type);
+  if (all.length === 1) { location.replace(hashOf({t:ti, o:all[0].id})); return; }
+  const f = GROUP[ti], key = o => o[f] || "অন্যান্য";
+  const parts = [[type, g ? hashOf({t:ti}) : null]];
+  let list = all, html = "";
+  if (f && !g){
+    const groups = {}; all.forEach(o => groups[key(o)] = (groups[key(o)] || 0) + 1);
+    html = Object.keys(groups).sort(cmp).map(k => `<a class="lnk" href="${hashOf({t:ti, g:k})}"><div><b>${esc(k)}</b><small>${bn(groups[k])} টি দপ্তর</small></div>${CHEV}</a>`).join("");
+  } else {
+    if (f) { list = all.filter(o => key(o) === g); parts.push([g, null]); }
+    html = list.sort((a,b) => (a.upazila ? 1 : 0) - (b.upazila ? 1 : 0) || cmp(a.upazila || "", b.upazila || "") || cmp(a.name, b.name))
+      .map(o => `<a class="lnk" href="${hashOf({t:ti, g, o:o.id})}"><div><b>${esc(o.name)}</b>${o.upazila ? `<small>${esc(o.upazila)}</small>` : ""}</div>${CHEV}</a>`).join("");
+  }
+  $("head").innerHTML = crumbs(parts) + `<h2 class="ttl">${esc(g || type)}</h2>`;
+  $("list").innerHTML = html || '<div class="msg">এই বিভাগে এখনো কোনো দপ্তর যোগ হয়নি।</div>';
+}
+
+function officeView(id, ti, g){
+  const o = offices.find(x => x.id == id); if (!o) return home();
+  const parts = [];
+  if (TYPES[ti]){ parts.push([TYPES[ti], hashOf({t:ti})]); if (g) parts.push([g, hashOf({t:ti, g})]); }
+  $("head").innerHTML = crumbs(parts) + `<h2 class="ttl">${esc(o.name)}</h2><div class="count" id="count"></div>`;
+  start({office:id});
+}
+
+function searchView(q){
+  $("head").innerHTML = `<h2 class="ttl">অনুসন্ধানের ফল</h2><div class="count" id="count"></div>`;
+  start({q});
+}
+
+function line(label, html){ return `<b>${label}</b><span>${html}</span>`; }
+function item(x, showOffice){
+  const ex = x.extra || {};
   const av = x.photo_path
     ? `<img class="av" loading="lazy" alt="${esc(initial(x.name))}" src="${SUPABASE_URL}/storage/v1/object/public/photos/${esc(x.photo_path)}">`
     : `<div class="av" aria-hidden="true">${esc(initial(x.name))}</div>`;
-  const acts = (x.phone ? `<a href="tel:${esc(en(x.phone))}" aria-label="কল করুন">${IC.call}</a>` : "")
-             + (x.email ? `<a href="mailto:${esc(x.email)}" aria-label="ইমেইল পাঠান">${IC.mail}</a>` : "");
-  const det = [["অফিস", o.name], ["মোবাইল", x.phone], ["ইমেইল", x.email],
-    ...Object.entries(LABELS).filter(([k]) => ex[k]).map(([k,l]) => [l, ex[k]])]
-    .filter(r => r[1]).map(r => `<div><b>${r[0]}</b><span>${esc(r[1])}</span></div>`).join("");
-  return `<div class="item"><div class="row"><button class="main" aria-expanded="false">${av}
-    <span class="t"><span class="n">${esc(x.name)}</span><br><span class="d">${esc(x.designation)}</span><br><span class="o">${esc(o.name)}</span></span></button>
-    <div class="act">${acts}</div></div><div class="more">${det}</div></div>`;
+  const web = ex.web ? (/^(https?:\/\/|www\.)/i.test(ex.web) ? `<a href="${esc(/^www\./i.test(ex.web) ? "https://" + ex.web : ex.web)}" target="_blank" rel="noopener">${esc(ex.web)}</a>` : esc(ex.web)) : "";
+  const rows = [
+    web && line("ওয়েব পোর্টাল", web),
+    x.email && line("ই-মেইল", `<a href="mailto:${esc(x.email)}">${esc(x.email)}</a>`),
+    ex.room && line("কক্ষ নং", esc(ex.room)),
+    x.join_date && line("যোগদানের তারিখ", esc(x.join_date)),
+    x.cadre_id && line("ক্যাডার আইডি", esc(x.cadre_id)),
+    x.bcs_batch && line("বিসিএস ব্যাচ", esc(x.bcs_batch)),
+    x.phone && line("মোবাইল", `<a href="tel:${esc(en(x.phone))}">${esc(x.phone)}</a>`),
+    ...Object.keys(EXTRA_LABELS).filter(k => ex[k]).map(k => line(EXTRA_LABELS[k], esc(ex[k]))),
+    ...Object.keys(ex).filter(k => !["web","room","office","office_phone","intercom","fax"].includes(k)).map(k => line(esc(k), esc(ex[k])))
+  ].filter(Boolean).join("");
+  return `<article class="item">${av}<div class="t"><div class="n">${esc(x.name)}</div>${x.name_en ? `<div class="e">${esc(x.name_en)}</div>` : ""}
+    <div class="d">${esc(x.designation)}</div>${rows ? `<div class="m">${rows}</div>` : ""}
+    ${showOffice && x.offices ? `<div class="o">${esc(x.offices.name)}</div>` : ""}</div>
+    ${x.phone ? `<a class="call" href="tel:${esc(en(x.phone))}" aria-label="কল করুন">${CALL}</a>` : ""}</article>`;
 }
 
-async function load(reset){
-  if (busy || (!reset && done)) return;
-  busy = true; const my = reset ? ++token : token;
-  if (reset){ offset = 0; done = false; $("list").innerHTML = ""; $("count").textContent = "লোড হচ্ছে…"; }
-  const q = $("q").value.trim().replace(/[*,()%]/g, " ");
-  const p = new URLSearchParams({select:"name,designation,phone,email,photo_path,extra,offices!inner(name,type,district)", active:"eq.true", order:"id"});
-  if ($("type").value) p.set("offices.type", "eq." + $("type").value);
-  if ($("district").value) p.set("offices.district", "eq." + $("district").value);
-  if (q) p.set("or", `(name.ilike.*${q}*,designation.ilike.*${q}*)`);
+function start(mode){ st = {mode, offset:0, total:0, busy:false, done:false, token:st.token + 1}; $("list").innerHTML = ""; if ($("count")) $("count").textContent = "লোড হচ্ছে…"; fetchMore(); }
+function stopList(){ st.token++; st.done = true; }
+
+async function fetchMore(){
+  if (st.busy || st.done) return;
+  st.busy = true; const my = st.token, m = st.mode;
+  const p = new URLSearchParams({select:"name,name_en,designation,phone,email,photo_path,join_date,cadre_id,bcs_batch,extra,offices(name)", active:"eq.true", order:"id"});
+  if (m.office) p.set("office_id", "eq." + m.office);
+  if (m.q){ const q = m.q.replace(/[*,()%]/g, " ").trim();
+    p.set("or", `(name.ilike.*${q}*,name_en.ilike.*${q}*,designation.ilike.*${q}*,cadre_id.ilike.*${q}*)`); }
   try{
-    const r = await fetch(`${SUPABASE_URL}/rest/v1/officers?${p}`, {headers:{...H, Range:`${offset}-${offset+PAGE-1}`, Prefer:"count=exact"}});
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/officers?${p}`, {headers:{...H, Range:`${st.offset}-${st.offset+PAGE-1}`, Prefer:"count=exact"}});
     if (!r.ok) throw 0;
-    if (my !== token) return;
-    total = +(r.headers.get("content-range")||"").split("/")[1] || 0;
+    if (my !== st.token) return;
+    st.total = +(r.headers.get("content-range") || "").split("/")[1] || 0;
     const rows = await r.json();
-    $("list").insertAdjacentHTML("beforeend", rows.map(item).join(""));
-    offset += rows.length; done = offset >= total || !rows.length;
-    $("count").textContent = total ? `মোট ${bn(total)} জন` : "";
-    if (!total) $("list").innerHTML = '<div class="msg">কোনো ফল পাওয়া যায়নি।<br>অন্য শব্দ বা ফিল্টার দিয়ে চেষ্টা করুন।</div>';
-  }catch(e){ if (my === token){ done = true; $("count").textContent = ""; $("list").innerHTML = '<div class="msg">তথ্য আনা যায়নি।<br>ইন্টারনেট দেখে পেজ রিলোড করুন।</div>'; } }
-  busy = false;
+    $("list").insertAdjacentHTML("beforeend", rows.map(x => item(x, !!m.q)).join(""));
+    st.offset += rows.length; st.done = st.offset >= st.total || !rows.length;
+    $("count").textContent = st.total ? `মোট ${bn(st.total)} জন` : "";
+    if (!st.total) $("list").innerHTML = '<div class="msg">কোনো ফল পাওয়া যায়নি।<br>অন্য শব্দ দিয়ে চেষ্টা করুন।</div>';
+  }catch(e){ if (my === st.token){ st.done = true; $("list").innerHTML = '<div class="msg">তথ্য আনা যায়নি।<br>ইন্টারনেট দেখে পেজ রিলোড করুন।</div>'; } }
+  st.busy = false;
 }
 
-$("list").addEventListener("click", e => {
-  const b = e.target.closest(".main"); if (!b) return;
-  const it = b.closest(".item"), open = it.classList.toggle("open");
-  b.setAttribute("aria-expanded", open);
-});
+function route(){
+  const q = $("q").value.trim();
+  if (q) return searchView(q);
+  const p = params(), t = p.get("t"), g = p.get("g"), o = p.get("o");
+  if (o) officeView(o, t, g);
+  else if (t !== null) categoryView(+t, g);
+  else home();
+  window.scrollTo(0, 0);
+}
+
 document.addEventListener("error", e => {
   const t = e.target;
   if (t.tagName === "IMG" && t.classList.contains("av")){
     const d = document.createElement("div"); d.className = "av"; d.textContent = t.alt; t.replaceWith(d);
   }
 }, true);
-$("q").addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(() => load(true), 350); });
-$("type").addEventListener("change", () => load(true));
-$("district").addEventListener("change", () => load(true));
-new IntersectionObserver(es => { if (es[0].isIntersecting) load(false); }, {rootMargin:"500px"}).observe($("end"));
-loadFilters(); load(true);
+$("q").addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(route, 350); });
+window.addEventListener("hashchange", () => { $("q").value = ""; route(); });
+new IntersectionObserver(es => { if (es[0].isIntersecting) fetchMore(); }, {rootMargin:"500px"}).observe($("end"));
+loadOffices().then(route).catch(() => { $("list").innerHTML = '<div class="msg">তথ্য আনা যায়নি।<br>ইন্টারনেট দেখে পেজ রিলোড করুন।</div>'; });
 </script>
 </body>
 </html>
