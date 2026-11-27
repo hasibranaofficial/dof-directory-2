@@ -31,12 +31,18 @@ WEEK_AGO = (NOW - datetime.timedelta(days=7)).isoformat()[:19]
 DEBUG_LEFT = [3]   # প্রথম ৩টি 'দেখুন' পেজের লেবেল লগে ছাপা হবে
 UNKNOWN_LABELS = Counter()   # 'দেখুন' পেজের যেসব লেবেল চেনা যায়নি (শেষে লগে ছাপা হয়)
 
+BROWSER_UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+              "Accept-Language": "bn,en;q=0.8"}
 def get(url, **kw):
-    """সরকারি সাইটের অসম্পূর্ণ SSL সনদ থাকলে যাচাই ছাড়া আবার চেষ্টা করে।"""
-    try:
-        return requests.get(url, headers=UA, **kw)
-    except requests.exceptions.SSLError:
-        return requests.get(url, headers=UA, verify=False, **kw)
+    """সরকারি সাইটের অসম্পূর্ণ SSL সনদ থাকলে যাচাই ছাড়া আবার চেষ্টা করে; ৪০৩ এলে সাধারণ ব্রাউজার পরিচয়ে আবার চেষ্টা করে।"""
+    def one(h, **k):
+        try:
+            return requests.get(url, headers=h, **k)
+        except requests.exceptions.SSLError:
+            return requests.get(url, headers=h, verify=False, **k)
+    r = one(UA, **kw)
+    if r.status_code in (403, 406): r = one(BROWSER_UA, **kw)
+    return r
 
 def api(method, path, **kw):
     h = {**H, "Content-Type": "application/json", **kw.pop("headers", {})}
@@ -86,13 +92,14 @@ def blank(name, photo):
 
 def parse_labeled(s, base):
     """"লেবেল | মান" সারির কাঠামো: 'নাম' সারি এলে নতুন কর্মকর্তা শুরু হয়; 'দেখুন' লিংকও ধরা হয়।"""
-    out, cur, last_img, branch = [], None, None, None
+    out, cur, last_img, branch, started = [], None, None, None, False
     def src(img):
         return urljoin(base + "/", img["src"]) if img is not None and img.get("src") else None
     for el in s.find_all(["img", "tr", "a", "h2", "h3", "h4", "h5"]):
         if el.name in ("h2", "h3", "h4", "h5"):
             t = clean(el.get_text(" "))
-            if t and t != "কর্মকর্তাবৃন্দ" and not t.startswith("(") and len(t) <= 80: branch = t
+            if t == "কর্মকর্তাবৃন্দ": started = True
+            elif started and t and not t.startswith("(") and len(t) <= 80: branch = t
             continue
         if el.name == "img":
             last_img = el; continue
@@ -400,9 +407,66 @@ def resolve_urls():
     except Exception as e:
         print("ঠিকানা খোঁজা ব্যর্থ:", str(e)[:200])
 
+# ---------- সদর দপ্তরের হোমপেজের মেনু থেকে সব দপ্তরের ঠিকানা সংগ্রহ ----------
+MENU_URLS = ["https://fisheries.gov.bd/", "https://fisheries.portal.gov.bd/"]
+def norm(t):
+    t = re.sub(r"[\s,।.()\-\u200c\u200d]", "", t or "")
+    return t.replace("ট্র", "ট্ট").replace("চট্টগ্রাম", "চট্টগ্রাম")
+TOKENS = {   # ডাটাবেসের দপ্তর -> মেনুর লেখায় যেসব শব্দ থাকতে হবে
+    "মৎস্য প্রশিক্ষণ একাডেমি, সাভার": ["প্রশিক্ষণ একাডেমি"],
+    "মৎস্য ডিপ্লোমা ইনস্টিটিউট, চাঁদপুর": ["ডিপ্লোমা", "চাঁদপুর"],
+    "মৎস্য ডিপ্লোমা ইনস্টিটিউট, সিরাজগঞ্জ": ["ডিপ্লোমা", "সিরাজগঞ্জ"],
+    "মৎস্য ডিপ্লোমা ইনস্টিটিউট, গোপালগঞ্জ": ["ডিপ্লোমা", "গোপালগঞ্জ"],
+    "মৎস্য ডিপ্লোমা ইনস্টিটিউট, কিশোরগঞ্জ": ["ডিপ্লোমা", "কিশোরগঞ্জ"],
+    "মৎস্য প্রশিক্ষণ ইনস্টিটিউট, চাঁদপুর": ["প্রশিক্ষণ", "ইনস্টিটিউট", "চাঁদপুর"],
+    "মৎস্য প্রশিক্ষণ কেন্দ্র, কোটচাঁদপুর, ঝিনাইদহ": ["কোটচাঁদপুর"],
+    "মৎস্য প্রজনন ও প্রশিক্ষণ কেন্দ্র, রায়পুর, লক্ষ্মীপুর": ["রায়পুর"],
+    "মৎস্য প্রশিক্ষণ ও সম্প্রসারণ কেন্দ্র, ফরিদপুর": ["সম্প্রসারণ", "ফরিদপুর"],
+    "সামুদ্রিক মৎস্য দপ্তর, চট্টগ্রাম": ["সামুদ্রিক মৎস্য দপ্তর"],
+    "সামুদ্রিক মৎস্য জরিপ ব্যবস্থাপনা ইউনিট, চট্টগ্রাম": ["জরিপ"],
+}
+for c in ["ঢাকা", "চট্টগ্রাম", "খুলনা"]:
+    TOKENS[f"কোয়ালিটি অ্যাসুরেন্স ম্যানেজারের কার্যালয়, {c}"] = ["অ্যাসুরেন্স", c]
+    TOKENS[f"ফিশ ইন্সপেকশন এন্ড কোয়ালিটি কন্ট্রোল (এফআইকিউসি), {c}"] = ["এফআইকিউসি", c]
+for c in DIV: TOKENS[f"উপপরিচালকের কার্যালয়, মৎস্য, {c} বিভাগ"] = [c, "বিভাগ"]
+
+def menu_links():
+    out = {}
+    for mu in MENU_URLS:
+        try:
+            r = get(mu, timeout=40); soup = BeautifulSoup(r.text, "html.parser")
+            for a in soup.find_all("a", href=True):
+                t = clean(a.get_text(" ")); h = urljoin(mu, a["href"])
+                u = urlparse(h)
+                if t and u.hostname and u.hostname.endswith(".gov.bd") and u.hostname not in ("fisheries.gov.bd", "www.fisheries.gov.bd", "fisheries.portal.gov.bd"):
+                    out.setdefault(t, f"{u.scheme}://{u.hostname}")
+        except Exception as e:
+            print("মেনু পড়া ব্যর্থ", mu, str(e)[:100])
+    return out
+
+def resolve_from_menu():
+    try:
+        links = menu_links(); print("মেনু থেকে পাওয়া লিংক:", len(links))
+        nl = [(norm(t), u, t) for t, u in links.items()]
+        for o in api("GET", "offices?base_url=is.null&select=id,name&limit=500"):
+            tok = [norm(x) for x in TOKENS.get(o["name"], [])]
+            hit = [(u, t) for n, u, t in nl if tok and all(x in n for x in tok)]
+            if hit:
+                api("PATCH", f"offices?id=eq.{o['id']}", json={"base_url": hit[0][0]}); print("মেনু থেকে মিলেছে:", o["name"], hit[0][0], "<-", hit[0][1])
+        # খামার: মেনুর যেসব লিংকের লেখায় 'খামার' বা 'হ্যাচারি' আছে
+        known = {(x["base_url"] or "").rstrip("/").lower() for x in api("GET", "offices?select=base_url&limit=5000")}
+        farms = [{"name": t, "type": "মৎস্য খামার সমূহ", "district": (t.split(",")[-1].strip() if "," in t else None), "base_url": u}
+                 for t, u in links.items() if ("খামার" in t or "হ্যাচারি" in t) and u.lower() not in known]
+        for i in range(0, len(farms), 200):
+            api("POST", "offices?on_conflict=base_url", json=farms[i:i+200], headers={"Prefer": "resolution=merge-duplicates"})
+        print("খামার যোগ:", len(farms))
+    except Exception as e:
+        print("মেনু থেকে ঠিকানা সংগ্রহ ব্যর্থ:", str(e)[:200])
+
 if __name__ == "__main__":
     sync_sites()
     if DISCOVER: discover_offices()
+    resolve_from_menu()
     resolve_urls()
     offices = api("GET", "offices?active=eq.true&base_url=not.is.null&select=id,name,base_url&limit=5000")
     with ThreadPoolExecutor(8) as ex: res = list(ex.map(run_office, offices))
