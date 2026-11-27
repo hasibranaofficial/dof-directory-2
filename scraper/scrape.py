@@ -1,9 +1,13 @@
 """প্রতিদিন সব অফিসের কর্মকর্তা-কর্মচারীর তালিকা সংগ্রহ ও আপডেট (প্রতিজনের 'দেখুন' পেজসহ)।"""
-import os, re, csv, hashlib, datetime, requests, urllib3
+import os, io, re, csv, hashlib, datetime, requests, urllib3
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 from urllib.parse import urljoin, urlparse
 from bs4 import BeautifulSoup
+try:
+    from PIL import Image, ImageOps
+except ImportError:
+    Image = None
 
 urllib3.disable_warnings()
 URL = os.environ["SUPABASE_URL"].rstrip("/")
@@ -20,6 +24,7 @@ PHONE = re.compile(r"(?:\+?880|\+৮৮০|0|০)[\d০-৯\-\s]{8,}")
 EMAIL = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")
 FIELDS = ("name", "name_en", "designation", "phone", "email", "photo_url",
           "join_date", "cadre_id", "bcs_batch", "extra")
+PHOTO_PX = int(os.environ.get("PHOTO_PX", "240"))   # ছবির সর্বোচ্চ দৈর্ঘ্য/প্রস্থ (পিক্সেল)
 CARD = re.compile(r"officer|member|staff|profile|card", re.I)
 NOW = datetime.datetime.now(datetime.timezone.utc)
 WEEK_AGO = (NOW - datetime.timedelta(days=7)).isoformat()[:19]
@@ -215,12 +220,27 @@ def fill_detail(row):
 
 def key_of(name, desig): return hashlib.sha1(clean(f"{name}|{desig or ''}").encode()).hexdigest()[:16]
 
+def shrink(raw):
+    """ছবি ছোট করে JPEG (কোয়ালিটি ~70) বানায়; সাধারণত ৫-১৫ কেবি হয়। ব্যর্থ হলে None।"""
+    if Image is None: return None
+    try:
+        im = ImageOps.exif_transpose(Image.open(io.BytesIO(raw)))
+        if im.mode in ("RGBA", "LA", "P"):
+            im = im.convert("RGBA"); bg = Image.new("RGB", im.size, "white"); bg.paste(im, mask=im.split()[-1]); im = bg
+        else: im = im.convert("RGB")
+        im.thumbnail((PHOTO_PX, PHOTO_PX))
+        out = io.BytesIO(); im.save(out, "JPEG", quality=70, optimize=True, progressive=True)
+        return out.getvalue()
+    except Exception as e:
+        print("ছবি কম্প্রেস ব্যর্থ", str(e)[:80]); return None
+
 def upload_photo(office_id, key, url):
     try:
         r = get(url, timeout=40); r.raise_for_status()
-        ctype = r.headers.get("content-type", "image/jpeg")
-        path = f"{office_id}/{key}.{'png' if 'png' in ctype else 'jpg'}"
-        u = requests.post(f"{URL}/storage/v1/object/photos/{path}", data=r.content, timeout=60,
+        small = shrink(r.content)
+        body, ctype = (small, "image/jpeg") if small else (r.content, r.headers.get("content-type", "image/jpeg"))
+        path = f"{office_id}/{key}.{'jpg' if small else ('png' if 'png' in ctype else 'jpg')}"
+        u = requests.post(f"{URL}/storage/v1/object/photos/{path}", data=body, timeout=60,
                           headers={**H, "Content-Type": ctype, "x-upsert": "true"})
         u.raise_for_status(); return path
     except Exception as e:
@@ -234,7 +254,8 @@ def run_office(o):
         if not rows: raise ValueError("কোনো কর্মকর্তা পাওয়া যায়নি (পেজ কাঠামো আলাদা হতে পারে)")
         old = {x["key"]: x for x in api("GET", f"officers?office_id=eq.{o['id']}&select=*&limit=2000")}
         todo = []
-        for row in rows:
+        for i, row in enumerate(rows, 1):
+            row["pos"] = i
             row["_k"] = key_of(row["name"], row["designation"]); ex = old.get(row["_k"]); row["_ex"] = ex
             row["detail_at"] = ex.get("detail_at") if ex else None
             if ex:   # বিস্তারিত না আনলে আগের মান ধরে রাখা
@@ -249,13 +270,14 @@ def run_office(o):
             k, ex = row["_k"], row["_ex"]; seen.add(k)
             if ex and ex["locked"]: continue
             changed = (not ex) or (not ex["active"]) or any(ex.get(f) != row[f] for f in FIELDS)
+            moved = bool(ex) and ex.get("pos") != row["pos"]
             fetched = row in todo and row["detail_at"] != (ex or {}).get("detail_at")
-            if not changed and not fetched and not (FULL_PHOTOS and row["photo_url"]): continue
+            if not changed and not moved and not fetched and not (FULL_PHOTOS and row["photo_url"]): continue
             photo_path = ex["photo_path"] if ex else None
             if row["photo_url"] and (not ex or ex["photo_url"] != row["photo_url"] or not photo_path or FULL_PHOTOS):
                 photo_path = upload_photo(o["id"], k, row["photo_url"]) or photo_path
             upserts.append({**{f: row[f] for f in FIELDS}, "detail_at": row["detail_at"],
-                            "office_id": o["id"], "key": k, "photo_path": photo_path,
+                            "office_id": o["id"], "key": k, "photo_path": photo_path, "pos": row["pos"],
                             "active": True, "missed_runs": 0})
             if changed:
                 log.append({"office_id": o["id"], "officer_key": k, "action": "update" if ex else "add",
