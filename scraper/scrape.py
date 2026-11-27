@@ -23,7 +23,7 @@ UA = {"User-Agent": "DoF-Directory-Bot/1.0 (official staff directory)"}
 PHONE = re.compile(r"(?:\+?880|\+৮৮০|0|০)[\d০-৯\-\s]{8,}")
 EMAIL = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")
 FIELDS = ("name", "name_en", "designation", "phone", "email", "photo_url",
-          "join_date", "cadre_id", "bcs_batch", "extra")
+          "join_date", "cadre_id", "bcs_batch", "extra", "branch")
 PHOTO_PX = int(os.environ.get("PHOTO_PX", "240"))   # ছবির সর্বোচ্চ দৈর্ঘ্য/প্রস্থ (পিক্সেল)
 CARD = re.compile(r"officer|member|staff|profile|card", re.I)
 NOW = datetime.datetime.now(datetime.timezone.utc)
@@ -82,14 +82,18 @@ def field_of(l):
 def blank(name, photo):
     return {"name": name, "name_en": None, "designation": None, "phone": None, "email": None,
             "photo_url": photo, "join_date": None, "cadre_id": None, "bcs_batch": None,
-            "extra": {}, "_url": None}
+            "extra": {}, "branch": None, "_url": None}
 
 def parse_labeled(s, base):
     """"লেবেল | মান" সারির কাঠামো: 'নাম' সারি এলে নতুন কর্মকর্তা শুরু হয়; 'দেখুন' লিংকও ধরা হয়।"""
-    out, cur, last_img = [], None, None
+    out, cur, last_img, branch = [], None, None, None
     def src(img):
         return urljoin(base + "/", img["src"]) if img is not None and img.get("src") else None
-    for el in s.find_all(["img", "tr", "a"]):
+    for el in s.find_all(["img", "tr", "a", "h2", "h3", "h4", "h5"]):
+        if el.name in ("h2", "h3", "h4", "h5"):
+            t = clean(el.get_text(" "))
+            if t and t != "কর্মকর্তাবৃন্দ" and not t.startswith("(") and len(t) <= 80: branch = t
+            continue
         if el.name == "img":
             last_img = el; continue
         if el.name == "a":
@@ -112,7 +116,7 @@ def parse_labeled(s, base):
                     own = tbl.find("img")
                 if own is None and tbl.parent is not None and len(tbl.parent.find_all("table")) == 1:
                     own = tbl.parent.find("img")
-            cur = blank(val, src(own if own is not None else last_img))
+            cur = blank(val, src(own if own is not None else last_img)); cur["branch"] = branch
             out.append(cur); last_img = None
         elif cur is not None and val:
             if f == "email": cur["email"] = val.replace(" ", "")
@@ -371,10 +375,36 @@ def discover_offices():
     except Exception as e:
         print("অফিস আবিষ্কার ব্যর্থ (বিদ্যমান অফিস নিয়েই চলছে):", str(e)[:200])
 
+# ---------- ঠিকানা ফাঁকা দপ্তরের ওয়েবসাইট খুঁজে বসানো ----------
+DIV = {"ঢাকা": ["dhaka"], "চট্টগ্রাম": ["chittagong", "chattogram", "comilla"], "রাজশাহী": ["rajshahi"],
+       "খুলনা": ["khulna"], "বরিশাল": ["barisal"], "সিলেট": ["sylhet"], "রংপুর": ["rangpur"], "ময়মনসিংহ": ["mymensingh"]}
+def candidates(o):
+    n, c = o["name"], (o.get("district") or "")
+    if n.startswith("উপপরিচালকের কার্যালয়, মৎস্য,"):
+        return [f"https://fisheries.{x}div.gov.bd" for x in DIV.get(c, [])]
+    if "এফআইকিউসি" in n:
+        sl = {"ঢাকা": ["dhaka"], "খুলনা": ["khulna"], "চট্টগ্রাম": ["chittagong", "chattogram", "ctg"]}.get(c, [])
+        return [f"{sc}://fiqc{x}.fisheries.gov.bd" for x in sl for sc in ("https", "http")]
+    return []
+
+def resolve_urls():
+    try:
+        for o in api("GET", "offices?base_url=is.null&select=id,name,district&limit=500"):
+            for u in candidates(o):
+                try:
+                    r = get(u + "/pages/officers", timeout=25)
+                    if r.status_code < 400 and "কর্মকর্তা" in r.text:
+                        api("PATCH", f"offices?id=eq.{o['id']}", json={"base_url": u}); print("ঠিকানা মিলেছে:", o["name"], u); break
+                except Exception: pass
+            else: print("ঠিকানা পাওয়া যায়নি:", o["name"])
+    except Exception as e:
+        print("ঠিকানা খোঁজা ব্যর্থ:", str(e)[:200])
+
 if __name__ == "__main__":
     sync_sites()
     if DISCOVER: discover_offices()
-    offices = api("GET", "offices?active=eq.true&select=id,name,base_url&limit=5000")
+    resolve_urls()
+    offices = api("GET", "offices?active=eq.true&base_url=not.is.null&select=id,name,base_url&limit=5000")
     with ThreadPoolExecutor(8) as ex: res = list(ex.map(run_office, offices))
     bad = [r for r in res if not r[1]]
     print(f"মোট {len(res)}, সফল {len(res)-len(bad)}, ব্যর্থ {len(bad)}")
