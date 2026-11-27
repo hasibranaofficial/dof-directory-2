@@ -1,7 +1,8 @@
 """প্রতিদিন সব অফিসের কর্মকর্তা-কর্মচারীর তালিকা সংগ্রহ ও আপডেট (প্রতিজনের 'দেখুন' পেজসহ)।"""
 import os, re, csv, hashlib, datetime, requests, urllib3
+from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
 from bs4 import BeautifulSoup
 
 urllib3.disable_warnings()
@@ -9,6 +10,9 @@ URL = os.environ["SUPABASE_URL"].rstrip("/")
 KEY = os.environ["SUPABASE_SERVICE_KEY"]
 PATH = os.environ.get("OFFICERS_PATH", "/pages/officers?page=1&page_size=250")
 FULL_PHOTOS = os.environ.get("FULL_PHOTOS") == "1"
+REFETCH = os.environ.get("REFETCH_DETAIL") == "1"      # সব 'দেখুন' পেজ জোর করে আবার আনতে
+DISCOVER = os.environ.get("DISCOVER_OFFICES", "1") != "0"  # জেলা-উপজেলা অফিস খুঁজে যোগ করা
+GEO_URL = os.environ.get("GEO_URL", "https://raw.githubusercontent.com/nuhil/bangladesh-geocode/master")
 H = {"apikey": KEY}
 if KEY.startswith("eyJ"): H["Authorization"] = f"Bearer {KEY}"
 UA = {"User-Agent": "DoF-Directory-Bot/1.0 (official staff directory)"}
@@ -20,6 +24,7 @@ CARD = re.compile(r"officer|member|staff|profile|card", re.I)
 NOW = datetime.datetime.now(datetime.timezone.utc)
 WEEK_AGO = (NOW - datetime.timedelta(days=7)).isoformat()[:19]
 DEBUG_LEFT = [3]   # প্রথম ৩টি 'দেখুন' পেজের লেবেল লগে ছাপা হবে
+UNKNOWN_LABELS = Counter()   # 'দেখুন' পেজের যেসব লেবেল চেনা যায়নি (শেষে লগে ছাপা হয়)
 
 def get(url, **kw):
     """সরকারি সাইটের অসম্পূর্ণ SSL সনদ থাকলে যাচাই ছাড়া আবার চেষ্টা করে।"""
@@ -37,6 +42,12 @@ def api(method, path, **kw):
 
 def clean(t): return re.sub(r"\s+", " ", t or "").strip()
 
+def clean_batch(v):
+    """'১৭তম', '১৭ তম ব্যাচ' ইত্যাদি থেকে শুধু সংখ্যা রাখে (ছোট মানের ক্ষেত্রে)।"""
+    v = clean(v)
+    m = re.search(r"[০-৯0-9]+", v)
+    return m.group() if m and len(v) <= 25 else v
+
 def label_of(tr):
     c = tr.find(["th", "td"])
     return clean(c.get_text(" ")).rstrip(":：").strip() if c else ""
@@ -44,14 +55,17 @@ def label_of(tr):
 def field_of(l):
     """পেজের লেবেল থেকে ডেটাবেসের ঘর ঠিক করে; অচেনা লেবেল 'x:' দিয়ে শুরু হয়ে extra-তে যায়।"""
     low = l.lower()
+    n = re.sub(r"[\s.\-\u200c\u200d]", "", l)   # 'বি.সি.এস', 'বি সি এস' ইত্যাদিও ধরার জন্য
     if "ইংরেজি" in l or low.startswith("name"): return "name_en"
     if l == "নাম" or l.startswith("নাম (বাংলা") or l.startswith("নাম(বাংলা"): return "name"
     if "পদবি" in l or "পদবী" in l: return "designation"
     if "ইমেইল" in l or "ই-মেইল" in l or "ই মেইল" in l or "email" in low: return "email"
     if "মোবাইল" in l: return "phone"
     if "যোগদান" in l: return "join_date"
-    if "ক্যাডার" in l or "cadre" in low: return "cadre_id"
-    if "বিসিএস" in l or "bcs" in low or "ব্যাচ" in l: return "bcs_batch"
+    if "ব্যাচ" in n or "batch" in low: return "bcs_batch"
+    if ("বিসিএস" in n or "bcs" in low) and "ক্যাডার" not in n: return "bcs_batch"
+    if "ক্যাডার" in n or "cadre" in low: return "cadre_id"
+    if "বিসিএস" in n or "bcs" in low: return "bcs_batch"
     if "কক্ষ" in l: return "room"
     if "ওয়েব" in l: return "web"
     if "ইন্টারকম" in l: return "intercom"
@@ -97,7 +111,8 @@ def parse_labeled(s, base):
             out.append(cur); last_img = None
         elif cur is not None and val:
             if f == "email": cur["email"] = val.replace(" ", "")
-            elif f in ("designation", "phone", "name_en", "join_date", "cadre_id", "bcs_batch"): cur[f] = val
+            elif f == "bcs_batch": cur[f] = clean_batch(val)
+            elif f in ("designation", "phone", "name_en", "join_date", "cadre_id"): cur[f] = val
             elif f == "office": pass
             elif f.startswith("x:"):
                 if len(label) <= 40: cur["extra"][f[2:]] = val
@@ -163,15 +178,20 @@ def parse_detail(html):
     s = BeautifulSoup(html, "html.parser")
     for t in s(["script", "style", "noscript"]): t.decompose()
     res = {"extra": {}}
+    labels = []
     for label, val in detail_pairs(s):
         if not label or not val: continue
+        labels.append(label)
         f = field_of(label)
-        if f in ("name", "designation", "phone", "name_en", "join_date", "cadre_id", "bcs_batch"):
+        if f == "bcs_batch": res.setdefault(f, clean_batch(val))
+        elif f in ("name", "designation", "phone", "name_en", "join_date", "cadre_id"):
             res.setdefault(f, val)
         elif f == "email": res.setdefault("email", val.replace(" ", ""))
         elif f == "office": pass
-        elif f.startswith("x:"): pass   # অচেনা লেবেল (যেমন জন্মতারিখ, ঠিকানা) নিরাপত্তার জন্য সংরক্ষণ করা হয় না
+        elif f.startswith("x:"):   # অচেনা লেবেল (যেমন জন্মতারিখ, ঠিকানা) নিরাপত্তার জন্য সংরক্ষণ করা হয় না
+            if len(label) <= 40: UNKNOWN_LABELS[label] += 1
         else: res["extra"].setdefault(f, val)
+    res["_labels"] = labels[:40]
     return res
 
 def fill_detail(row):
@@ -220,7 +240,7 @@ def run_office(o):
             if ex:   # বিস্তারিত না আনলে আগের মান ধরে রাখা
                 for f in ("cadre_id", "bcs_batch", "join_date"): row[f] = ex.get(f)
                 row["extra"] = {**(ex.get("extra") or {}), **(row["extra"] or {})} or None
-            stale = (not ex) or (not ex.get("detail_at")) or ex["detail_at"][:19] < WEEK_AGO
+            stale = REFETCH or (not ex) or (not ex.get("detail_at")) or ex["detail_at"][:19] < WEEK_AGO
             if row["_url"] and not (ex and ex["locked"]) and stale: todo.append(row)
         if todo:
             with ThreadPoolExecutor(3) as tp: list(tp.map(fill_detail, todo))
@@ -266,10 +286,75 @@ def sync_sites():
     if rows: api("POST", "offices?on_conflict=base_url", json=rows,
                  headers={"Prefer": "resolution=merge-duplicates"})
 
+# ---------- জেলা-উপজেলা অফিস আবিষ্কার ----------
+# সরকারি পোর্টালের ঠিকানার ছাঁচ: জেলা  https://fisheries.<জেলা>.gov.bd
+#                              উপজেলা https://fisheries.<উপজেলা>.<জেলা>.gov.bd
+# জেলা-উপজেলার তালিকা ও পোর্টাল-নাম আসে খোলা ডেটাসেট (nuhil/bangladesh-geocode) থেকে।
+
+def geo_table(name):
+    r = requests.get(f"{GEO_URL}/{name}/{name}.json", timeout=60); r.raise_for_status()
+    for t in r.json():
+        if t.get("type") == "table": return t["data"]
+    return []
+
+def portal_slug(u):
+    u = re.sub(r"^https?://", "", (u or "").strip().lower()).split("/")[0]
+    u = re.sub(r"^www\.", "", u)
+    return u[:-len(".gov.bd")] if u.endswith(".gov.bd") else ""
+
+def load_geo():
+    """[(স্তর, বিভাগ, জেলা, উপজেলা, পোর্টাল-নাম)] তালিকা।"""
+    div = {x["id"]: x["bn_name"] for x in geo_table("divisions")}
+    dis = {x["id"]: x for x in geo_table("districts")}
+    out = []
+    for d in dis.values():
+        s = portal_slug(d.get("url"))
+        if s and "." not in s: out.append(("জেলা", div.get(d["division_id"]), d["bn_name"], None, s))
+    for u in geo_table("upazilas"):
+        d = dis.get(u["district_id"]); s = portal_slug(u.get("url"))
+        if d and s: out.append(("উপজেলা", div.get(d["division_id"]), d["bn_name"], u["bn_name"], s))
+    return out
+
+def site_exists(host):
+    """সাইট সত্যিই ওই ঠিকানায় আছে কিনা (অন্য ঠিকানায় রিডাইরেক্ট হলে নেই ধরা হয়)।"""
+    try:
+        r = get(f"https://{host}/", timeout=20)
+    except Exception:
+        return False
+    final = (urlparse(r.url).hostname or "").lower().removeprefix("www.")
+    return r.status_code < 400 and final == host
+
+def discover_offices():
+    """তালিকায় নেই এমন জেলা-উপজেলা অফিসের সাইট খুঁজে offices টেবিলে যোগ করে। ব্যর্থ হলে বাকি কাজ থামে না।"""
+    try:
+        geo = load_geo()
+        known = {(x["base_url"] or "").rstrip("/").lower()
+                 for x in api("GET", "offices?select=base_url&limit=5000")}
+        todo = [g for g in geo if f"https://fisheries.{g[4]}.gov.bd" not in known]
+        def chk(g): return g, site_exists(f"fisheries.{g[4]}.gov.bd")
+        with ThreadPoolExecutor(16) as tp: res = list(tp.map(chk, todo))
+        rows, miss = [], []
+        for (lvl, div, dist, upa, s), ok in res:
+            if not ok:
+                miss.append(f"{upa + ', ' if upa else ''}{dist}"); continue
+            name = (f"জেলা মৎস্য কর্মকর্তার কার্যালয়, {dist}" if lvl == "জেলা"
+                    else f"উপজেলা মৎস্য কর্মকর্তার কার্যালয়, {upa}, {dist}")
+            rows.append({"name": name, "type": f"{lvl} কার্যালয়", "division": div, "district": dist,
+                         "upazila": upa, "base_url": f"https://fisheries.{s}.gov.bd"})
+        for i in range(0, len(rows), 200):
+            api("POST", "offices?on_conflict=base_url", json=rows[i:i+200],
+                headers={"Prefer": "resolution=merge-duplicates"})
+        print(f"অফিস আবিষ্কার: নতুন যোগ {len(rows)}, সাইট পাওয়া যায়নি {len(miss)}, আগে থেকেই ছিল {len(geo)-len(todo)}")
+        if miss: print("সাইট পাওয়া যায়নি (প্রথম ৪০):", " | ".join(miss[:40]))
+    except Exception as e:
+        print("অফিস আবিষ্কার ব্যর্থ (বিদ্যমান অফিস নিয়েই চলছে):", str(e)[:200])
+
 if __name__ == "__main__":
     sync_sites()
-    offices = api("GET", "offices?active=eq.true&select=id,name,base_url&limit=2000")
+    if DISCOVER: discover_offices()
+    offices = api("GET", "offices?active=eq.true&select=id,name,base_url&limit=5000")
     with ThreadPoolExecutor(8) as ex: res = list(ex.map(run_office, offices))
     bad = [r for r in res if not r[1]]
     print(f"মোট {len(res)}, সফল {len(res)-len(bad)}, ব্যর্থ {len(bad)}")
     for n, _, e in bad[:50]: print("ব্যর্থ:", n, "-", e)
+    if UNKNOWN_LABELS: print("'দেখুন' পেজের অচেনা লেবেল (শীর্ষ ৪০):", UNKNOWN_LABELS.most_common(40))
