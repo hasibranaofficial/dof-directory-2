@@ -339,7 +339,7 @@ def discover_offices():
                 miss.append(f"{upa + ', ' if upa else ''}{dist}"); continue
             name = (f"জেলা মৎস্য কর্মকর্তার কার্যালয়, {dist}" if lvl == "জেলা"
                     else f"উপজেলা মৎস্য কর্মকর্তার কার্যালয়, {upa}, {dist}")
-            rows.append({"name": name, "type": "জেলা-উপজেলা ও খামার দপ্তরসমূহ" "division": div, "district": dist,
+            rows.append({"name": name, "type": "জেলা-উপজেলা ও খামার দপ্তরসমূহ", "division": div, "district": dist,
                          "upazila": upa, "base_url": f"https://fisheries.{s}.gov.bd"})
         for i in range(0, len(rows), 200):
             api("POST", "offices?on_conflict=base_url", json=rows[i:i+200],
