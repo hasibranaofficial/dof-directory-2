@@ -59,6 +59,7 @@ input:focus,button:focus-visible,a:focus-visible{outline:2px solid var(--acc);ou
 .msg{padding:48px 0;text-align:center;color:var(--mute)}
 #end{height:1px}
 footer{padding:24px 0 36px;text-align:center;color:var(--mute);font-size:12px}
+.ourl{display:block;margin:-4px 0 8px;font-size:13px;color:var(--acc);word-break:break-all}
 </style>
 </head>
 <body>
@@ -74,8 +75,16 @@ const {SUPABASE_URL, ANON_KEY} = window.CONFIG || {};
 const H = {apikey: ANON_KEY};
 if (String(ANON_KEY).startsWith("eyJ")) H.Authorization = "Bearer " + ANON_KEY;
 const PAGE = 30;
-const TYPES = ["সদর দপ্তর","বিভাগীয় দপ্তর","জেলা-উপজেলা ও খামার দপ্তরসমূহ","মাননিয়ন্ত্রণ দপ্তরসমূহ","মৎস্য প্রশিক্ষণ একাডেমি","প্রশিক্ষণ ও ডিপ্লোমা ইনস্টিটিউটসমূহ","সামুদ্রিক মৎস্য দপ্তর"];
-const GROUP = {1:"division", 2:"district"};          // কোন দপ্তরে কোন ঘর ধরে উপ-মেনু হবে
+const TABS = [
+  {label:"সদর দপ্তর", type:"সদর দপ্তর"},
+  {label:"বিভাগীয় দপ্তর", type:"বিভাগীয় দপ্তর"},
+  {label:"মান নিয়ন্ত্রণ দপ্তরসমূহ", type:"মান নিয়ন্ত্রণ দপ্তরসমূহ"},
+  {label:"মৎস্য প্রশিক্ষণ একাডেমি", type:"মৎস্য প্রশিক্ষণ একাডেমি"},
+  {label:"প্রশিক্ষণ ও ডিপ্লোমা ইনস্টিটিউটসমূহ", type:"প্রশিক্ষণ ও ডিপ্লোমা ইনস্টিটিউটসমূহ"},
+  {label:"সামুদ্রিক মৎস্য দপ্তর", type:"সামুদ্রিক মৎস্য দপ্তর"},
+  {label:"জেলা ও উপজেলা সমূহ", type:"জেলা-উপজেলা ও খামার দপ্তরসমূহ", group:"district"},   // ডেটাবেসের মান আগের মতোই রাখা হয়েছে
+  {label:"মৎস্য খামার সমূহ", type:"মৎস্য খামার সমূহ", group:"district"}
+];
 const EXTRA_LABELS = {office_phone:"অফিস ফোন", intercom:"ইন্টারকম", fax:"ফ্যাক্স"};
 const CHEV = '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>';
 const CALL = '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>';
@@ -92,7 +101,7 @@ const hashOf = o => "#" + Object.entries(o).filter(e => e[1] !== undefined && e[
 const params = () => new URLSearchParams(location.hash.slice(1));
 
 async function loadOffices(){
-  const r = await fetch(`${SUPABASE_URL}/rest/v1/offices?select=id,name,type,division,district,upazila&active=eq.true&limit=2000`, {headers:H});
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/offices?select=id,name,type,division,district,upazila,base_url&active=eq.true&limit=2000`, {headers:H});
   if (!r.ok) throw 0;
   offices = await r.json();
 }
@@ -105,18 +114,19 @@ function crumbs(parts){
 function home(){
   stopList();
   $("head").innerHTML = "";
-  $("list").innerHTML = '<div class="tiles">' + TYPES.map((t,i) => {
-    const n = offices.filter(o => o.type === t).length;
-    return `<a class="tile${i === TYPES.length-1 && TYPES.length % 2 ? " wide" : ""}" href="${hashOf({t:i})}"><b>${esc(t)}</b><span>${n ? bn(n) + " টি দপ্তর" : "শীঘ্রই আসছে"}</span></a>`;
+  $("list").innerHTML = '<div class="tiles">' + TABS.map((t,i) => {
+    const n = offices.filter(o => o.type === t.type).length;
+    return `<a class="tile${i === TABS.length-1 && TABS.length % 2 ? " wide" : ""}" href="${hashOf({t:i})}"><b>${esc(t.label)}</b><span>${n ? bn(n) + " টি দপ্তর" : "শীঘ্রই আসছে"}</span></a>`;
   }).join("") + "</div>";
 }
 
 function categoryView(ti, g){
   stopList();
-  const type = TYPES[ti]; if (!type) return home();
-  const all = offices.filter(o => o.type === type);
+  const tab = TABS[ti]; if (!tab) return home();
+  const type = tab.label;
+  const all = offices.filter(o => o.type === tab.type);
   if (all.length === 1) { location.replace(hashOf({t:ti, o:all[0].id})); return; }
-  const f = GROUP[ti], key = o => o[f] || "অন্যান্য";
+  const f = tab.group, key = o => o[f] || "অন্যান্য";
   const parts = [[type, g ? hashOf({t:ti}) : null]];
   let list = all, html = "";
   if (f && !g){
@@ -134,8 +144,8 @@ function categoryView(ti, g){
 function officeView(id, ti, g){
   const o = offices.find(x => x.id == id); if (!o) return home();
   const parts = [];
-  if (TYPES[ti]){ parts.push([TYPES[ti], hashOf({t:ti})]); if (g) parts.push([g, hashOf({t:ti, g})]); }
-  $("head").innerHTML = crumbs(parts) + `<h2 class="ttl">${esc(o.name)}</h2><div class="count" id="count"></div>`;
+  if (TABS[ti]){ parts.push([TABS[ti].label, hashOf({t:ti})]); if (g) parts.push([g, hashOf({t:ti, g})]); }
+  $("head").innerHTML = crumbs(parts) + `<h2 class="ttl">${esc(o.name)}</h2>${o.base_url ? `<a class="ourl" href="${esc(o.base_url)}" target="_blank" rel="noopener">${esc(o.base_url.replace(/^https?:\/\//, ""))}</a>` : ""}<div class="count" id="count"></div>`;
   start({office:id});
 }
 
@@ -176,10 +186,13 @@ function stopList(){ st.token++; st.done = true; }
 async function fetchMore(){
   if (st.busy || st.done) return;
   st.busy = true; const my = st.token, m = st.mode;
-  const p = new URLSearchParams({select:"name,name_en,designation,phone,email,photo_path,join_date,cadre_id,bcs_batch,extra,offices(name)", active:"eq.true", order:"id"});
+  const p = new URLSearchParams({select:"name,name_en,designation,phone,email,photo_path,join_date,cadre_id,bcs_batch,extra,offices(name)", active:"eq.true", order:"pos.nullslast,id"});
   if (m.office) p.set("office_id", "eq." + m.office);
-  if (m.q){ const q = m.q.replace(/[*,()%]/g, " ").trim();
-    p.set("or", `(name.ilike.*${q}*,name_en.ilike.*${q}*,designation.ilike.*${q}*,cadre_id.ilike.*${q}*)`); }
+  if (m.q){
+    const terms = m.q.replace(/[*,()%]/g, " ").trim().split(/\s+/).filter(Boolean).slice(0, 6);
+    const cond = t => `or(name.ilike.*${t}*,name_en.ilike.*${t}*,designation.ilike.*${t}*,cadre_id.ilike.*${t}*)`;
+    p.set("and", "(" + terms.map(cond).join(",") + ")");
+  }
   try{
     const r = await fetch(`${SUPABASE_URL}/rest/v1/officers?${p}`, {headers:{...H, Range:`${st.offset}-${st.offset+PAGE-1}`, Prefer:"count=exact"}});
     if (!r.ok) throw 0;
