@@ -59,6 +59,7 @@ input:focus,button:focus-visible,a:focus-visible{outline:2px solid var(--acc);ou
 .msg{padding:48px 0;text-align:center;color:var(--mute)}
 #end{height:1px}
 footer{padding:24px 0 36px;text-align:center;color:var(--mute);font-size:12px}
+.br{margin:18px 2px 6px;font-size:15px;color:var(--acc)}
 .ourl{display:block;margin:-4px 0 8px;font-size:13px;color:var(--acc);word-break:break-all}
 </style>
 </head>
@@ -186,7 +187,7 @@ function stopList(){ st.token++; st.done = true; }
 async function fetchMore(){
   if (st.busy || st.done) return;
   st.busy = true; const my = st.token, m = st.mode;
-  const p = new URLSearchParams({select:"name,name_en,designation,phone,email,photo_path,join_date,cadre_id,bcs_batch,extra,offices(name)", active:"eq.true", order:"pos.nullslast,id"});
+  const p = new URLSearchParams({select:"name,name_en,branch,designation,phone,email,photo_path,join_date,cadre_id,bcs_batch,extra,offices(name)", active:"eq.true", order:"pos.nullslast,id"});
   if (m.office) p.set("office_id", "eq." + m.office);
   if (m.q){
     const terms = m.q.replace(/[*,()%]/g, " ").trim().split(/\s+/).filter(Boolean).slice(0, 6);
@@ -199,7 +200,11 @@ async function fetchMore(){
     if (my !== st.token) return;
     st.total = +(r.headers.get("content-range") || "").split("/")[1] || 0;
     const rows = await r.json();
-    $("list").insertAdjacentHTML("beforeend", rows.map(x => item(x, !!m.q)).join(""));
+    $("list").insertAdjacentHTML("beforeend", rows.map(x => {
+      let hd = "";
+      if (m.office && x.branch && x.branch !== st.lastBranch) { st.lastBranch = x.branch; hd = `<h3 class="br">${esc(x.branch)}</h3>`; }
+      return hd + item(x, !!m.q);
+    }).join(""));
     st.offset += rows.length; st.done = st.offset >= st.total || !rows.length;
     $("count").textContent = st.total ? `মোট ${bn(st.total)} জন` : "";
     if (!st.total) $("list").innerHTML = '<div class="msg">কোনো ফল পাওয়া যায়নি।<br>অন্য শব্দ দিয়ে চেষ্টা করুন।</div>';
