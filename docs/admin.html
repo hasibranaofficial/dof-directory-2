@@ -1,0 +1,493 @@
+<!doctype html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#0b6e6e">
+<title>অ্যাডমিন প্যানেল – মৎস্য অধিদপ্তর নির্দেশিকা</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#fafaf8;--card:#fff;--ink:#14201f;--mute:#667876;--line:#e6ebea;--acc:#0b6e6e;--accbg:#e4f2f1;--red:#b3261e;--redbg:#fbeae9;--amb:#8a5a00;--ambbg:#fdf1d8;--blue:#1b5fa8;--bluebg:#e6f0fb}
+@media(prefers-color-scheme:dark){:root{--bg:#0b1415;--card:#111d1e;--ink:#e8f1f0;--mute:#8fa5a3;--line:#1f3032;--acc:#5ec4c2;--accbg:#14302f;--red:#f2877f;--redbg:#3a1a18;--amb:#e8b84a;--ambbg:#3a2d10;--blue:#7fb4ec;--bluebg:#14283d}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+html{scroll-padding-top:120px}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.55 "Noto Sans Bengali",system-ui,sans-serif;padding-bottom:env(safe-area-inset-bottom)}
+.wrap{max-width:760px;margin:0 auto;padding:0 16px}
+h1,h2,h3{margin:0}
+button,input,select,textarea{font:inherit;color:inherit}
+input,select{width:100%;height:46px;border:1px solid var(--line);border-radius:12px;background:var(--card);padding:0 14px;font-size:16px}
+input:focus,select:focus{outline:2px solid var(--acc);outline-offset:-1px}
+label{display:block;font-size:13px;color:var(--mute);margin:12px 0 4px;font-weight:500}
+.btn{height:44px;border:1px solid var(--line);background:var(--card);border-radius:12px;padding:0 16px;font-weight:500;cursor:pointer;white-space:nowrap}
+.btn.pri{background:var(--acc);border-color:var(--acc);color:#fff}
+@media(prefers-color-scheme:dark){.btn.pri{color:#06201f}}
+.btn.dng{color:var(--red);border-color:var(--red)}
+.btn.sm{height:36px;padding:0 12px;font-size:14px;border-radius:10px}
+.btn:disabled{opacity:.5;cursor:default}
+.row{display:flex;gap:8px;align-items:center}
+.row>*{flex:0 0 auto}.row>.grow{flex:1 1 auto;min-width:0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px}
+.mute{color:var(--mute)}
+/* login */
+#login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px 16px}
+#login .card{width:100%;max-width:400px;padding:24px}
+#login h1{font-size:22px;margin-bottom:2px}
+.err{color:var(--red);font-size:14px;margin-top:10px;min-height:20px}
+/* header + tabs */
+header.top{padding:calc(14px + env(safe-area-inset-top)) 0 10px}
+header.top .t small{display:block;color:var(--acc);font-weight:500;font-size:13px}
+header.top h1{font-size:20px;line-height:1.3}
+nav{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--bg) 90%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--line);padding:8px 0}
+nav .row{gap:6px}
+nav button{flex:1;height:42px;border:1px solid var(--line);background:var(--card);border-radius:12px;font-weight:500;font-size:15px;cursor:pointer}
+nav button.on{background:var(--acc);border-color:var(--acc);color:#fff}
+@media(prefers-color-scheme:dark){nav button.on{color:#06201f}}
+main{padding:14px 0 60px}
+/* officers */
+.ctrl{display:grid;gap:8px;margin-bottom:12px}
+.officebtn{display:flex;justify-content:space-between;align-items:center;gap:8px;width:100%;min-height:46px;border:1px solid var(--line);border-radius:12px;background:var(--card);padding:8px 14px;text-align:left;cursor:pointer}
+.officebtn span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chk{display:flex;gap:8px;align-items:center;font-size:14px;color:var(--mute);margin:2px 0}
+.chk input{width:18px;height:18px}
+.list{display:grid;gap:10px}
+.off{display:flex;gap:12px}
+.av{width:56px;height:56px;border-radius:50%;object-fit:cover;background:var(--accbg);flex:0 0 auto;display:flex;align-items:center;justify-content:center;color:var(--acc);font-weight:700;font-size:20px}
+.off .nm{font-weight:700;line-height:1.35}
+.off .ds{font-size:14px;color:var(--mute)}
+.off .of{font-size:13px;color:var(--acc);margin-top:2px}
+.badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+.b{font-size:12px;padding:1px 8px;border-radius:99px;font-weight:500}
+.b.lock{background:var(--ambbg);color:var(--amb)}
+.b.off_{background:var(--redbg);color:var(--red)}
+.b.src{background:var(--bluebg);color:var(--blue)}
+.b.me{background:var(--accbg);color:var(--acc)}
+.acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.hint{text-align:center;color:var(--mute);padding:28px 8px}
+/* modal */
+.back{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:20;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--bg);width:100%;max-width:640px;max-height:92vh;overflow:auto;border-radius:20px 20px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom))}
+@media(min-width:700px){.back{align-items:center}.sheet{border-radius:20px}}
+.sheet h3{font-size:18px;margin-bottom:8px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
+@media(max-width:480px){.grid2{grid-template-columns:1fr}}
+.plist{margin-top:10px;display:grid;gap:4px}
+.plist h4{margin:10px 0 2px;font-size:13px;color:var(--acc)}
+.plist button{text-align:left;border:1px solid var(--line);background:var(--card);border-radius:10px;padding:8px 12px;cursor:pointer;line-height:1.4}
+.plist small{display:block;color:var(--mute)}
+.pv{width:80px;height:80px;border-radius:50%;object-fit:cover;background:var(--accbg)}
+/* log */
+.chips{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.chips button{height:36px;padding:0 14px;border-radius:99px;border:1px solid var(--line);background:var(--card);cursor:pointer;font-size:14px}
+.chips button.on{background:var(--accbg);border-color:var(--acc);color:var(--acc);font-weight:700}
+.lg{display:grid;gap:8px}
+.lg .top{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.lg .tm{font-size:12px;color:var(--mute);margin-left:auto}
+.lg .what{margin-top:4px;font-weight:500}
+.lg ul{margin:6px 0 0;padding-left:18px;font-size:14px;color:var(--mute)}
+.lg s{opacity:.7}
+details summary{cursor:pointer;color:var(--acc);font-size:14px;margin-top:4px}
+details pre{white-space:pre-wrap;word-break:break-word;font:13px/1.5 ui-monospace,monospace;margin:6px 0 0;color:var(--mute)}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#14201f;color:#fff;padding:10px 18px;border-radius:99px;z-index:40;font-size:15px;max-width:90vw;box-shadow:0 6px 24px rgba(0,0,0,.3)}
+.sel{border-color:var(--acc);background:var(--accbg)}
+</style>
+</head>
+<body>
+
+<!-- লগইন -->
+<div id="login" hidden>
+  <div class="card">
+    <h1>অ্যাডমিন লগইন</h1>
+    <div class="mute" style="font-size:14px">মৎস্য অধিদপ্তর নির্দেশিকা</div>
+    <form id="lf" autocomplete="on">
+      <label for="le">ইমেইল</label>
+      <input id="le" type="email" autocomplete="username" required>
+      <label for="lp">পাসওয়ার্ড</label>
+      <input id="lp" type="password" autocomplete="current-password" required>
+      <div class="err" id="lerr"></div>
+      <button class="btn pri" id="lbtn" style="width:100%;margin-top:6px">প্রবেশ করুন</button>
+    </form>
+  </div>
+</div>
+
+<!-- অ্যাপ -->
+<div id="app" hidden>
+  <div class="wrap">
+    <header class="top row">
+      <div class="t grow"><small>অ্যাডমিন প্যানেল</small><h1>মৎস্য অধিদপ্তর নির্দেশিকা</h1></div>
+      <button class="btn sm" id="pwBtn" title="পাসওয়ার্ড পরিবর্তন">🔑</button>
+      <button class="btn sm" id="outBtn">লগআউট</button>
+    </header>
+  </div>
+  <nav><div class="wrap"><div class="row">
+    <button data-tab="officers" class="on">কর্মকর্তা</button>
+    <button data-tab="transfer">বদলি</button>
+    <button data-tab="log">সাম্প্রতিক পরিবর্তন</button>
+  </div></div></nav>
+  <main class="wrap">
+
+    <section id="tab-officers">
+      <div class="ctrl">
+        <button class="officebtn" id="officeBtn"><span>সব দপ্তর (দপ্তর বেছে নিন)</span><span>▾</span></button>
+        <input id="oq" type="search" placeholder="নাম, পদবি বা মোবাইল দিয়ে খুঁজুন…">
+        <label class="chk"><input type="checkbox" id="inact"> সরানো কর্মকর্তাও দেখান</label>
+        <button class="btn pri" id="addBtn">+ নতুন কর্মকর্তা যোগ করুন</button>
+      </div>
+      <div class="list" id="olist"></div>
+    </section>
+
+    <section id="tab-transfer" hidden>
+      <div class="card">
+        <h3 style="font-size:17px">কর্মকর্তা বদলি</h3>
+        <div class="mute" style="font-size:14px">১) কর্মকর্তা বেছে নিন  ২) নতুন দপ্তর বেছে নিন  ৩) বদলি করুন</div>
+        <label for="tq">১) কর্মকর্তা খুঁজুন</label>
+        <input id="tq" type="search" placeholder="নাম লিখুন (বাংলা বা ইংরেজি)">
+        <div class="list" id="tres" style="margin-top:10px"></div>
+        <div id="tsel" hidden>
+          <label>২) নতুন দপ্তর</label>
+          <button class="officebtn" id="toBtn"><span>দপ্তর বেছে নিন</span><span>▾</span></button>
+          <label for="tdes">নতুন পদবি (ঐচ্ছিক — ফাঁকা রাখলে আগের পদবিই থাকবে)</label>
+          <input id="tdes" type="text">
+          <button class="btn pri" id="tgo" style="width:100%;margin-top:14px">৩) বদলি করুন</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="tab-log" hidden>
+      <div class="chips" id="chips">
+        <button data-f="all" class="on">সব</button>
+        <button data-f="src">সোর্স (সরকারি ওয়েবসাইট)</button>
+        <button data-f="me">আমার সাইট</button>
+        <button data-f="refresh">↻</button>
+      </div>
+      <div class="lg" id="lg"></div>
+      <div style="text-align:center;margin-top:12px"><button class="btn" id="more" hidden>আরও দেখুন</button></div>
+    </section>
+
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+const SUPABASE_URL = "https://hlgtsigojqmpyqrrypye.supabase.co";
+const SUPABASE_KEY = "sb_publishable_Qvh2JyHzrk3FfF3SqS8tfQ_Hv1UGyph";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const initial = n => (String(n || "?").trim()[0] || "?");
+const debounce = (f, ms = 300) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => f(...a), ms); }; };
+
+function toast(msg) {
+  const t = document.createElement("div"); t.className = "toast"; t.textContent = msg;
+  document.body.appendChild(t); setTimeout(() => t.remove(), 2800);
+}
+function openModal(html) {
+  const back = document.createElement("div"); back.className = "back";
+  back.innerHTML = `<div class="sheet">${html}</div>`;
+  document.body.appendChild(back);
+  const m = { el: back.firstElementChild, close: () => { back.remove(); m.onclose && m.onclose(); } };
+  back.addEventListener("mousedown", e => { if (e.target === back) m.close(); });
+  return m;
+}
+
+/* ---------- লগইন / সেশন ---------- */
+let me = "";
+function showLogin(msg) {
+  $("#app").hidden = true; $("#login").hidden = false; $("#lerr").textContent = msg || "";
+}
+async function boot() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return showLogin();
+  const { data: ok, error } = await sb.rpc("is_admin");
+  if (error || !ok) { await sb.auth.signOut(); return showLogin("এই অ্যাকাউন্টের অ্যাডমিন অনুমতি নেই।"); }
+  me = session.user.email;
+  $("#login").hidden = true; $("#app").hidden = false;
+  await loadOffices();
+  renderOfficers();
+}
+$("#lf").addEventListener("submit", async e => {
+  e.preventDefault();
+  const b = $("#lbtn"); b.disabled = true; $("#lerr").textContent = "";
+  const { error } = await sb.auth.signInWithPassword({ email: $("#le").value.trim(), password: $("#lp").value });
+  b.disabled = false;
+  if (error) { $("#lerr").textContent = "ইমেইল বা পাসওয়ার্ড ভুল।"; return; }
+  boot();
+});
+$("#outBtn").onclick = async () => { await sb.auth.signOut(); location.reload(); };
+$("#pwBtn").onclick = () => {
+  const m = openModal(`<h3>পাসওয়ার্ড পরিবর্তন</h3>
+    <label>নতুন পাসওয়ার্ড (কমপক্ষে ৮ অক্ষর)</label><input id="np" type="password" autocomplete="new-password">
+    <div class="row" style="margin-top:14px"><button class="btn pri grow" id="npok">সংরক্ষণ</button><button class="btn" id="npx">বাতিল</button></div>`);
+  m.el.querySelector("#npx").onclick = m.close;
+  m.el.querySelector("#npok").onclick = async () => {
+    const v = m.el.querySelector("#np").value;
+    if (v.length < 8) return toast("কমপক্ষে ৮ অক্ষর দিন");
+    const { error } = await sb.auth.updateUser({ password: v });
+    if (error) return toast("পাসওয়ার্ড বদলানো যায়নি");
+    toast("পাসওয়ার্ড বদলানো হয়েছে"); m.close();
+  };
+};
+
+/* ---------- ট্যাব ---------- */
+document.querySelectorAll("nav button").forEach(b => b.onclick = () => showTab(b.dataset.tab));
+function showTab(t) {
+  document.querySelectorAll("nav button").forEach(x => x.classList.toggle("on", x.dataset.tab === t));
+  ["officers", "transfer", "log"].forEach(n => $("#tab-" + n).hidden = n !== t);
+  if (t === "log") loadLog(true);
+  window.scrollTo(0, 0);
+}
+
+/* ---------- দপ্তর ---------- */
+let offices = [], officeMap = {};
+async function loadOffices() {
+  const { data, error } = await sb.from("offices").select("id,name,type,division,district,upazila,active").order("type").order("name").range(0, 1999);
+  if (error) { toast("দপ্তরের তালিকা আনা যায়নি"); return; }
+  offices = data; officeMap = Object.fromEntries(data.map(o => [o.id, o]));
+}
+const officeSub = o => [o.upazila, o.district, o.division].filter(Boolean).join(", ");
+function pickOffice(title, allowAll) {
+  return new Promise(res => {
+    let done = false;
+    const m = openModal(`<h3>${esc(title)}</h3><input id="pq" type="search" placeholder="দপ্তর খুঁজুন…"><div class="plist" id="pl"></div>`);
+    m.onclose = () => { if (!done) res(undefined); };
+    const pl = m.el.querySelector("#pl"), pq = m.el.querySelector("#pq");
+    const draw = () => {
+      const q = pq.value.trim().toLowerCase();
+      const list = offices.filter(o => !q || (o.name + " " + officeSub(o)).toLowerCase().includes(q)).slice(0, 150);
+      let h = allowAll && !q ? `<button data-id="">সব দপ্তর</button>` : "", last = "";
+      for (const o of list) {
+        if (o.type !== last) { last = o.type; h += `<h4>${esc(o.type)}</h4>`; }
+        h += `<button data-id="${o.id}">${esc(o.name)}${officeSub(o) ? `<small>${esc(officeSub(o))}</small>` : ""}${o.active ? "" : "<small>(নিষ্ক্রিয়)</small>"}</button>`;
+      }
+      pl.innerHTML = h || `<div class="hint">কিছু পাওয়া যায়নি</div>`;
+    };
+    pq.addEventListener("input", debounce(draw, 150)); draw();
+    pl.onclick = e => {
+      const b = e.target.closest("button"); if (!b) return;
+      done = true; res(b.dataset.id ? officeMap[b.dataset.id] : null); m.close();
+    };
+    setTimeout(() => pq.focus(), 50);
+  });
+}
+
+/* ---------- কর্মকর্তা ---------- */
+let selOffice = null, cache = {}, reqN = 0;
+$("#officeBtn").onclick = async () => {
+  const o = await pickOffice("দপ্তর বেছে নিন", true);
+  if (o === undefined) return;
+  selOffice = o; $("#officeBtn").firstElementChild.textContent = o ? o.name : "সব দপ্তর (দপ্তর বেছে নিন)";
+  renderOfficers();
+};
+$("#oq").addEventListener("input", debounce(() => renderOfficers()));
+$("#inact").onchange = () => renderOfficers();
+$("#addBtn").onclick = async () => {
+  let o = selOffice;
+  if (!o) { o = await pickOffice("কোন দপ্তরে যোগ করবেন?", false); if (!o) return; }
+  openForm(null, o);
+};
+
+async function renderOfficers() {
+  const my = ++reqN, q = $("#oq").value.trim().replace(/[,()*%]/g, " ").trim(), L = $("#olist");
+  if (!selOffice && !q) { L.innerHTML = `<div class="hint">উপরে দপ্তর বেছে নিন, অথবা নাম লিখে খুঁজুন।</div>`; return; }
+  L.innerHTML = `<div class="hint">লোড হচ্ছে…</div>`;
+  let qb = sb.from("officers").select("*").order("office_id").order("pos", { ascending: true, nullsFirst: false }).order("id").limit(300);
+  if (selOffice) qb = qb.eq("office_id", selOffice.id);
+  if (!$("#inact").checked) qb = qb.eq("active", true);
+  if (q) qb = qb.or(`name.ilike.%${q}%,name_en.ilike.%${q}%,designation.ilike.%${q}%,phone.ilike.%${q}%`);
+  const { data, error } = await qb;
+  if (my !== reqN) return;
+  if (error) { L.innerHTML = `<div class="hint">ডেটা আনা যায়নি: ${esc(error.message)}</div>`; return; }
+  cache = Object.fromEntries(data.map(o => [o.id, o]));
+  if (!data.length) { L.innerHTML = `<div class="hint">কোনো কর্মকর্তা পাওয়া যায়নি।</div>`; return; }
+  L.innerHTML = data.map(o => {
+    const av = o.photo_path
+      ? `<img class="av" loading="lazy" alt="" src="${SUPABASE_URL}/storage/v1/object/public/photos/${esc(o.photo_path)}">`
+      : `<div class="av">${esc(initial(o.name))}</div>`;
+    return `<div class="card off" data-id="${o.id}">${av}<div class="grow" style="min-width:0">
+      <div class="nm">${esc(o.name)}</div>
+      <div class="ds">${esc(o.designation || "")}${o.phone ? " · " + esc(o.phone) : ""}</div>
+      ${selOffice ? "" : `<div class="of">${esc(officeMap[o.office_id]?.name || "")}</div>`}
+      <div class="badges">${o.locked ? `<span class="b lock">🔒 ম্যানুয়াল</span>` : ""}${o.active ? "" : `<span class="b off_">সরানো</span>`}</div>
+      <div class="acts">
+        <button class="btn sm" data-a="edit">সম্পাদনা</button>
+        ${o.active ? `<button class="btn sm" data-a="move">বদলি</button><button class="btn sm dng" data-a="rm">সরান</button>`
+                   : `<button class="btn sm" data-a="rs">পুনরুদ্ধার</button>`}
+      </div></div></div>`;
+  }).join("") + (data.length >= 300 ? `<div class="hint">প্রথম ৩০০ জন দেখানো হলো — আরও সুনির্দিষ্টভাবে খুঁজুন।</div>` : "");
+}
+$("#olist").addEventListener("click", async e => {
+  const b = e.target.closest("button[data-a]"); if (!b) return;
+  const o = cache[b.closest(".card").dataset.id]; if (!o) return;
+  const a = b.dataset.a;
+  if (a === "edit") return openForm(o, officeMap[o.office_id]);
+  if (a === "move") { showTab("transfer"); return chooseTransfer(o); }
+  if (a === "rm" && !confirm(`"${o.name}" কে তালিকা থেকে সরানো হবে (সাইটে আর দেখাবে না)। চালিয়ে যাবেন?`)) return;
+  const { error } = await sb.from("officers").update({ active: a !== "rm" ? true : false }).eq("id", o.id);
+  if (error) return toast("ব্যর্থ: " + error.message);
+  toast(a === "rm" ? "সরানো হয়েছে" : "পুনরুদ্ধার হয়েছে"); renderOfficers();
+});
+
+async function compress(file, max = 400, q = 0.72) {
+  const bmp = await createImageBitmap(file);
+  const s = Math.min(1, max / Math.max(bmp.width, bmp.height));
+  const c = document.createElement("canvas"); c.width = Math.round(bmp.width * s); c.height = Math.round(bmp.height * s);
+  c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height);
+  return new Promise(r => c.toBlob(r, "image/jpeg", q));
+}
+function openForm(o, office) {
+  const isNew = !o, v = k => esc(o?.[k] ?? "");
+  const cur = o?.photo_path ? `${SUPABASE_URL}/storage/v1/object/public/photos/${esc(o.photo_path)}` : "";
+  const m = openModal(`<h3>${isNew ? "নতুন কর্মকর্তা" : "কর্মকর্তা সম্পাদনা"}</h3>
+    <div class="mute" style="font-size:14px">দপ্তর: ${esc(office?.name || "")}</div>
+    <label>নাম (বাংলা) *</label><input id="f_name" value="${v("name")}">
+    <label>নাম (ইংরেজি)</label><input id="f_name_en" value="${v("name_en")}">
+    <label>পদবি</label><input id="f_des" value="${v("designation")}">
+    <div class="grid2">
+      <div><label>মোবাইল</label><input id="f_phone" value="${v("phone")}"></div>
+      <div><label>ইমেইল</label><input id="f_email" type="email" value="${v("email")}"></div>
+      <div><label>বিসিএস ব্যাচ</label><input id="f_bcs" value="${v("bcs_batch")}"></div>
+      <div><label>ক্যাডার আইডি</label><input id="f_cadre" value="${v("cadre_id")}"></div>
+      <div><label>যোগদানের তারিখ</label><input id="f_join" value="${v("join_date")}"></div>
+      <div><label>শাখা</label><input id="f_branch" value="${v("branch")}"></div>
+      <div><label>ক্রম (ছোট সংখ্যা আগে দেখাবে)</label><input id="f_pos" type="number" inputmode="numeric" value="${v("pos")}"></div>
+    </div>
+    <label>ছবি (স্বয়ংক্রিয়ভাবে ছোট করে সংরক্ষণ হবে)</label>
+    <div class="row"><img class="pv" id="pv" ${cur ? `src="${cur}"` : "hidden"} alt=""><input id="f_file" type="file" accept="image/*" class="grow"></div>
+    ${cur ? `<label class="chk"><input type="checkbox" id="f_nophoto"> ছবি মুছে ফেলুন</label>` : ""}
+    <div class="mute" style="font-size:13px;margin-top:10px">সম্পাদনার পর এই কর্মকর্তা 🔒 ম্যানুয়াল হিসেবে চিহ্নিত হয়— সরকারি সাইট থেকে আর নিজে নিজে বদলাবে না।</div>
+    <div class="row" style="margin-top:14px"><button class="btn pri grow" id="f_ok">সংরক্ষণ</button><button class="btn" id="f_x">বাতিল</button></div>
+    ${isNew ? "" : `<button class="btn dng sm" id="f_del" style="margin-top:14px">স্থায়ীভাবে মুছে ফেলুন</button>`}`);
+  const $m = s => m.el.querySelector(s);
+  let blob = null;
+  $m("#f_x").onclick = m.close;
+  $m("#f_file").onchange = async e => {
+    const f = e.target.files[0]; if (!f) return;
+    try { blob = await compress(f); $m("#pv").src = URL.createObjectURL(blob); $m("#pv").hidden = false; }
+    catch { toast("ছবি পড়া যায়নি"); e.target.value = ""; }
+  };
+  if (!isNew) $m("#f_del").onclick = async () => {
+    if (!confirm(`"${o.name}" কে স্থায়ীভাবে মুছে ফেলবেন? এটি ফেরানো যাবে না।\n(শুধু সাইট থেকে লুকাতে চাইলে "সরান" ব্যবহার করুন।)`)) return;
+    const { error } = await sb.from("officers").delete().eq("id", o.id);
+    if (error) return toast("ব্যর্থ: " + error.message);
+    toast("মুছে ফেলা হয়েছে"); m.close(); renderOfficers();
+  };
+  $m("#f_ok").onclick = async () => {
+    const g = id => $m("#" + id).value.trim() || null;
+    const name = g("f_name"); if (!name) return toast("নাম আবশ্যক");
+    const btn = $m("#f_ok"); btn.disabled = true; btn.textContent = "সংরক্ষণ হচ্ছে…";
+    try {
+      const p = { name, name_en: g("f_name_en"), designation: g("f_des"), phone: g("f_phone"), email: g("f_email"),
+        bcs_batch: g("f_bcs"), cadre_id: g("f_cadre"), join_date: g("f_join"), branch: g("f_branch") };
+      const pv = g("f_pos"); p.pos = pv === null ? null : (parseInt(pv, 10) || null);
+      if (blob) {
+        const path = `officers/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
+        const up = await sb.storage.from("photos").upload(path, blob, { contentType: "image/jpeg", upsert: false });
+        if (up.error) throw up.error;
+        p.photo_path = path; p.photo_url = sb.storage.from("photos").getPublicUrl(path).data.publicUrl;
+      } else if ($m("#f_nophoto")?.checked) { p.photo_path = null; p.photo_url = null; }
+      let err;
+      if (isNew) {
+        if (p.pos === null) {
+          const r = await sb.from("officers").select("pos").eq("office_id", office.id).order("pos", { ascending: false, nullsFirst: false }).limit(1);
+          p.pos = ((r.data && r.data[0] && r.data[0].pos) || 0) + 1;
+        }
+        err = (await sb.from("officers").insert({ ...p, office_id: office.id, key: "manual-" + Date.now(), active: true })).error;
+      } else err = (await sb.from("officers").update(p).eq("id", o.id)).error;
+      if (err) throw err;
+      toast("সংরক্ষিত হয়েছে"); m.close();
+      if (!selOffice) { selOffice = office; $("#officeBtn").firstElementChild.textContent = office.name; }
+      renderOfficers();
+    } catch (e) { toast("ব্যর্থ: " + (e.message || e)); btn.disabled = false; btn.textContent = "সংরক্ষণ"; }
+  };
+}
+
+/* ---------- বদলি ---------- */
+let tOfficer = null, tTo = null;
+$("#tq").addEventListener("input", debounce(async () => {
+  const q = $("#tq").value.trim().replace(/[,()*%]/g, " ").trim(), R = $("#tres");
+  if (q.length < 2) { R.innerHTML = ""; return; }
+  const { data, error } = await sb.from("officers").select("id,name,name_en,designation,office_id,photo_path").eq("active", true)
+    .or(`name.ilike.%${q}%,name_en.ilike.%${q}%`).limit(20);
+  if (error) { R.innerHTML = `<div class="hint">খোঁজা যায়নি</div>`; return; }
+  cache = { ...cache, ...Object.fromEntries(data.map(o => [o.id, o])) };
+  R.innerHTML = data.length ? data.map(o => `<button class="officebtn" data-id="${o.id}" style="display:block"><b>${esc(o.name)}</b><br><small class="mute">${esc(o.designation || "")} — ${esc(officeMap[o.office_id]?.name || "")}</small></button>`).join("")
+    : `<div class="hint">কাউকে পাওয়া যায়নি</div>`;
+}));
+$("#tres").onclick = e => { const b = e.target.closest("button[data-id]"); if (b) chooseTransfer(cache[b.dataset.id]); };
+function chooseTransfer(o) {
+  tOfficer = o; tTo = null;
+  $("#tres").innerHTML = `<div class="card sel"><b>${esc(o.name)}</b><br><span class="mute">${esc(o.designation || "")}</span><br><span style="color:var(--acc);font-size:14px">বর্তমান দপ্তর: ${esc(officeMap[o.office_id]?.name || "")}</span></div>`;
+  $("#tq").value = ""; $("#tsel").hidden = false; $("#tdes").value = ""; $("#tdes").placeholder = o.designation || "";
+  $("#toBtn").firstElementChild.textContent = "দপ্তর বেছে নিন";
+}
+$("#toBtn").onclick = async () => {
+  const o = await pickOffice("নতুন দপ্তর বেছে নিন", false);
+  if (!o) return; tTo = o; $("#toBtn").firstElementChild.textContent = o.name;
+};
+$("#tgo").onclick = async () => {
+  if (!tOfficer) return toast("আগে কর্মকর্তা বেছে নিন");
+  if (!tTo) return toast("নতুন দপ্তর বেছে নিন");
+  if (tTo.id === tOfficer.office_id) return toast("একই দপ্তর বেছে নেওয়া হয়েছে");
+  const from = officeMap[tOfficer.office_id]?.name || "";
+  if (!confirm(`${tOfficer.name}\n\n${from}\n  ↓\n${tTo.name}\n\nবদলি করবেন?`)) return;
+  const b = $("#tgo"); b.disabled = true;
+  const { error } = await sb.rpc("transfer_officer", { p_id: tOfficer.id, p_office: tTo.id, p_designation: $("#tdes").value.trim() || null });
+  b.disabled = false;
+  if (error) return toast("ব্যর্থ: " + error.message);
+  toast("বদলি সম্পন্ন হয়েছে");
+  tOfficer = null; tTo = null; $("#tsel").hidden = true; $("#tres").innerHTML = "";
+  showTab("log");
+};
+
+/* ---------- সাম্প্রতিক পরিবর্তন ---------- */
+const ACT = { admin_add: "নতুন যোগ করা হয়েছে", admin_edit: "তথ্য সম্পাদনা", admin_remove: "তালিকা থেকে সরানো হয়েছে",
+  admin_restore: "পুনরুদ্ধার করা হয়েছে", admin_delete: "স্থায়ীভাবে মুছে ফেলা হয়েছে", admin_transfer: "বদলি",
+  add: "সোর্সে নতুন কর্মকর্তা পাওয়া গেছে", update: "সোর্সে তথ্য বদলেছে" };
+const FLD = { name: "নাম", name_en: "ইংরেজি নাম", designation: "পদবি", phone: "মোবাইল", email: "ইমেইল", photo_url: "ছবি", photo_path: "ছবির পাথ",
+  bcs_batch: "বিসিএস ব্যাচ", cadre_id: "ক্যাডার আইডি", join_date: "যোগদান", branch: "শাখা", pos: "ক্রম", active: "সক্রিয়", extra: "অতিরিক্ত তথ্য", office_id: "দপ্তর" };
+let logFilter = "all", logOff = 0; const PAGE = 40;
+$("#chips").onclick = e => {
+  const b = e.target.closest("button"); if (!b) return;
+  if (b.dataset.f !== "refresh") { logFilter = b.dataset.f; document.querySelectorAll("#chips button").forEach(x => x.classList.toggle("on", x === b)); }
+  loadLog(true);
+};
+$("#more").onclick = () => loadLog(false);
+const fv = x => x === null || x === undefined || x === "" ? "—" : (typeof x === "object" ? JSON.stringify(x) : String(x)).slice(0, 70);
+const when = t => new Date(t).toLocaleString("bn-BD", { timeZone: "Asia/Dhaka", dateStyle: "medium", timeStyle: "short" });
+async function loadLog(reset) {
+  const L = $("#lg");
+  if (reset) { logOff = 0; L.innerHTML = `<div class="hint">লোড হচ্ছে…</div>`; }
+  let qb = sb.from("change_log").select("*").order("at", { ascending: false }).order("id", { ascending: false }).range(logOff, logOff + PAGE - 1);
+  if (logFilter === "me") qb = qb.like("action", "admin_%");
+  if (logFilter === "src") qb = qb.not("action", "like", "admin_%");
+  const { data, error } = await qb;
+  if (error) { L.innerHTML = `<div class="hint">লগ আনা যায়নি: ${esc(error.message)}</div>`; return; }
+  const html = data.map(l => {
+    const d = l.detail || {}, mine = l.action.startsWith("admin_");
+    let body = "";
+    if (l.action === "admin_transfer") body = `<ul><li>${esc(d.from_office || "")} → <b>${esc(d.to_office || "")}</b></li>${d.designation ? `<li>পদবি: ${esc(d.designation)}</li>` : ""}</ul>`;
+    else if (l.action === "admin_edit" && d.changes) body = "<ul>" + Object.entries(d.changes).map(([k, c]) =>
+      `<li>${esc(FLD[k] || k)}: <s>${esc(fv(c.from))}</s> → ${esc(fv(c.to))}</li>`).join("") + "</ul>";
+    else if (!mine) {
+      const rows = Object.entries(d).filter(([k, v]) => v !== null && v !== "" && k !== "extra" && k !== "photo_url").map(([k, v]) => `${FLD[k] || k}: ${fv(v)}`).join("\n");
+      if (rows) body = `<details><summary>বিস্তারিত</summary><pre>${esc(rows)}</pre></details>`;
+    }
+    const office = l.action === "admin_transfer" ? "" : (officeMap[l.office_id]?.name || "");
+    return `<div class="card"><div class="top"><span class="b ${mine ? "me" : "src"}">${mine ? "আমার সাইট" : "সোর্স"}</span>
+      ${mine && d.by ? `<span class="mute" style="font-size:12px">${esc(d.by)}</span>` : ""}<span class="tm">${esc(when(l.at))}</span></div>
+      <div class="what"><b>${esc(d.name || l.officer_key || "")}</b> — ${esc(ACT[l.action] || l.action)}</div>
+      ${office ? `<div class="mute" style="font-size:13px">${esc(office)}</div>` : ""}${body}</div>`;
+  }).join("");
+  if (reset) L.innerHTML = html || `<div class="hint">কোনো পরিবর্তন নেই।</div>`; else L.insertAdjacentHTML("beforeend", html);
+  logOff += data.length; $("#more").hidden = data.length < PAGE;
+}
+
+sb.auth.onAuthStateChange(ev => { if (ev === "SIGNED_OUT") showLogin(); });
+boot();
+</script>
+</body>
+</html>
